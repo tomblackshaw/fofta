@@ -36,10 +36,8 @@ def was_this_partition_created(node, partno):
         return False
 
 
-type
-
-
 def add_partition_SUB(node, partno, start, end, fstype, with_partno_Q=True):
+    print('aaa')
     if with_partno_Q:
         res = os.system('''echo "p\nn\np\n%s\n%s\n%s\nw" | fdisk %s >/dev/null 2>/dev/null''' % (
                             '' if not partno else str(partno),
@@ -49,13 +47,17 @@ def add_partition_SUB(node, partno, start, end, fstype, with_partno_Q=True):
         res = os.system('''echo "p\nn\np\n%s\n%s\nw" | fdisk %s >/dev/null 2>/dev/null''' % (
                 '' if not start else str(start),
                 '' if not end else str(end), node))
+    print('bbb')
     res += os.system('''
-tmpfile=/tmp/$(printf "%08x" 0x$(dd if=/dev/urandom bs=1 count=200 2>/dev/null | tr -dc 'a-f0-9' | cut -c-8))
+tmpfile=/tmp/blah.txt # /tmp/$(printf "%08x" 0x$(dd if=/dev/urandom bs=1 count=200 2>/dev/null | tr -dc 'a-f0-9' | cut -c-8))
 sfdisk -d {node} | grep -vx "{node}.*{partno} :.*" > $tmpfile
-sfdisk -d {node} | grep -x "{node}.*{partno} :.*" | sed 's|type=.*|type={type}|' >> $tmpfile
-sfdisk -f {node} < $tmpfile >/dev/null 2>/dev/null
-rm -f $tmpfile
-'''.format(node=node, partno=partno, fstype=type))
+sfdisk -d {node} | grep -x "{node}.*{partno} :.*" | sed 's|type=.*|type={fstype}|' >> $tmpfile
+cat $tmpfile | grep -vx "{node}.* :.*" > $tmpfile.final
+cat $tmpfile | grep -x "{node}.* :.*" | sort > $tmpfile.final
+
+sfdisk -f {node} < $tmpfile.final >/dev/null 2>/dev/null
+#rm -f $tmpfile $tmpfile.final
+'''.format(node=node, partno=partno, fstype=fstype))
 
 
 def add_partition(node, partno, start, end, fstype=83):
@@ -198,7 +200,7 @@ class DiskPartition:
         # TODO: QQQ add locking
     def __str__(self):
         return """node=%s owner=%s start=%d size=%d fstype=%s label=%s partuuid=%s path=%s uuid=%s""" % \
-            (self._node, self._owner, self._start, self._size, self._type, self._label, self._partuuid, self._path, self._uuid)
+            (self._node, self._owner, self._start, self._size, self._fstype, self._label, self._partuuid, self._path, self._uuid)
 
     def __repr__(self):
         return f'DiskPartition(node="%s")' % self.node
@@ -208,7 +210,7 @@ class DiskPartition:
         self._node = self.__cache.node
         self._start = self.__cache.start
         self._size = self.__cache.size
-        self._type = self.__cache.fstype
+        self._fstype = self.__cache.type
         self._id = self.__cache.id
         self._label = self.__cache.label
         self._partuuid = self.__cache.partuuid
@@ -283,11 +285,11 @@ class DiskPartition:
     @property
     def fstype(self):
         """I'm the 'type' property."""
-        return self._type
+        return self._fstype
 
     @fstype.setter
     def fstype(self, value):
-        self._type = value
+        self._fstype = value
 
     @fstype.deleter
     def fstype(self):
@@ -550,10 +552,17 @@ class Disk:
     def overlapping(self):
         raise AttributeError("Not permitted")
 
-    def add_partition(self, partno, start=None, end=None, fstype='83'):
-        if len(self.partitions) == 4 or partno != 1 + len(self.partitions):
-            raise AttributeError("Cannot add %dth partition to %s" % (partno, self.node))
-        old_noof_partns = len(self.partitions)
+    def add_partition(self, partno, start=None, end=None, fstype='83', size_in_MiB=None):
+        if len(self.partitions) == 4:
+            raise AttributeError("Cannot have >%d partitions in %s" % (len(self.partitions), self.node))
+        if start is None and len(self.partitions) >= 1:
+            start = 1 + [r for r in self.partitions if r.node[-1:] == str(partno - 1)][0].end
+            partno_start_after_me_lst = [r.start for r in self.partitions if r.node[-1:] == str(partno + 1)]
+            if len(partno_start_after_me_lst) > 0:
+                end = partno_start_after_me_lst[0] - 1
+        if size_in_MiB is not None:
+            assert end is None, "Specify either end=... or size_in_MIB... but don't specify both"
+            end = start + (size_in_MiB * 1024 * 1024) // self.sector_size
         try:
             add_partition(self.node, partno, start, end, fstype)
             self.update()
@@ -562,21 +571,19 @@ class Disk:
                 raise AttributeError("Refusing to create partition #%d for %s -- it would overlap with another partition" % (partno, self.node))
         finally:
             self.update()
-        if len(self.partitions) == old_noof_partns:
+        if not was_this_partition_created(self.node, partno):
             raise AttributeError("Failed to create partition #%d for %s" % (partno, self.node))
 
     def delete_all_partitions(self):
-        for i in range(len(self.partitions) - 1, -1, -1):
+        for i in range(5, -1, -1):
             self.delete_partition(partno=i + 1)
+        self.update()
 
     def delete_partition(self, partno):
-        old_noof_partns = len(self.partitions)
         try:
             delete_partition(self.node, partno)
         finally:
             self.update()
-        if len(self.partitions) == old_noof_partns:
-            raise AttributeError("Failed to delete partition #%d from %s" % (partno, self.node))
 
     def dump(self):
         outtxt = '''label: {disk_label}
