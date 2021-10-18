@@ -10,6 +10,9 @@ import os
 import random
 import subprocess
 
+FS_EXTENDED = '5'
+FS_DEFAULT = '83'
+
 
 def is_this_a_disk(device_path):
     '''
@@ -25,58 +28,88 @@ def is_this_a_disk(device_path):
         return False
 
 
+def deduce_partno(node):
+    s = node.split('/')[-1]
+    i = len(s) - 1
+    while i >= 0 and s[i].isdigit():
+        i = i - 1
+    return int(s[i + 1:])
+
+
 def set_disk_id(node, new_diskid):
     os.system('''echo "x\ni\n{new_diskid}\nr\nw" | fdisk {node}'''.format(node=node, new_diskid=new_diskid))
 
 
 def was_this_partition_created(node, partno):
-    if 0 == os.system('''sfdisk -d %s | grep -x "%s.*%d :.*" > /dev/null''' % (node, node, partno)):
+    res = os.system('''
+node=%s
+partno=%d
+fullpartitiondev=$(sfdisk -d $node | grep -x "$node.*$partno :.*" | head -n1 | cut -d' ' -f1)
+[ -e "$fullpartitiondev" ] && return 0 || return 1
+    ''' % (node, partno))
+    if res == 0:
         return True
     else:
         return False
 
 
-def add_partition_SUB(node, partno, start, end, fstype, with_partno_Q=True):
-    print('aaa')
-    if with_partno_Q:
-        res = os.system('''echo "p\nn\np\n%s\n%s\n%s\nw" | fdisk %s >/dev/null 2>/dev/null''' % (
-                            '' if not partno else str(partno),
-                '' if not start else str(start),
-                '' if not end else str(end), node))
+def add_partition_SUB(node, partno, start, end, fstype, with_partno_Q=True, size_in_MiB=None, debug=False):
+    '''
+from my.partitiontools import *
+d = Disk('/dev/disk/by-id/usb-Mass_Storage_Device_121220160204-0:0')  # d = Disk('/dev/sda')
+add_partition_SUB(node='/dev/sda', partno=5, start=125042688, with_partno_Q=False, end=None, size_in_MiB=100)
+    '''
+    if debug:
+        print("add_partition_SUB() -- node=%s; partno=%s; start=%s; end=%s; size_in_MiB=%s" % (str(node), str(partno), str(start), str(end), str(size_in_MiB)))
+    if end is not None and size_in_MiB is not None:
+        raise AttributeError("Specify either end=... or size_in_MIB... but don't specify both")
+    elif end is None and size_in_MiB is not None:
+        end_str = "+%dM" % size_in_MiB
+    elif end is not None and size_in_MiB is None:
+        end_str = "%d" % end
     else:
-        res = os.system('''echo "p\nn\np\n%s\n%s\nw" | fdisk %s >/dev/null 2>/dev/null''' % (
+        end_str = None
+    if debug:
+        print("end_str is", end_str)
+        debug_str = ''
+    else:
+        debug_str = ' >/dev/null 2>/dev/null'
+    # if start is None and partno == 5:
+    #     raise AttributeError("Please specify the starting sector for partition %d of %s" % (partno, node))
+    if with_partno_Q:
+        res = os.system('''echo "p\nn\n%s\n%s\n%s\n%s\nw" | fdisk %s %s''' % (
+                'e' if fstype == FS_EXTENDED else 'l' if partno >= 5 else 'p',
+                '' if not partno else str(partno),
                 '' if not start else str(start),
-                '' if not end else str(end), node))
-    print('bbb')
-    res += os.system('''
-tmpfile=/tmp/blah.txt # /tmp/$(printf "%08x" 0x$(dd if=/dev/urandom bs=1 count=200 2>/dev/null | tr -dc 'a-f0-9' | cut -c-8))
-sfdisk -d {node} | grep -vx "{node}.*{partno} :.*" > $tmpfile
-sfdisk -d {node} | grep -x "{node}.*{partno} :.*" | sed 's|type=.*|type={fstype}|' >> $tmpfile
-cat $tmpfile | grep -vx "{node}.* :.*" > $tmpfile.final
-cat $tmpfile | grep -x "{node}.* :.*" | sort > $tmpfile.final
-
-sfdisk -f {node} < $tmpfile.final >/dev/null 2>/dev/null
-#rm -f $tmpfile $tmpfile.final
-'''.format(node=node, partno=partno, fstype=fstype))
+                '' if not end_str else end_str, node, debug_str))
+    else:
+        res = os.system('''echo "p\nn\n%s\n%s\n%s\nw" | fdisk %s %s''' % (
+                'e' if fstype == FS_EXTENDED else 'l' if partno >= 5 else 'p',
+                '' if not start else str(start),
+                '' if not end_str else end_str, node, debug_str))
+    res += os.system('''sfdisk --part-type {node} {partno} {fstype}{debug}'''.format(node=node, partno=partno, fstype=fstype,
+                                                                                     debug='' if debug else '> /dev/null 2> /dev/null'))
 
 
-def add_partition(node, partno, start, end, fstype=83):
+def add_partition(node, partno, start, end, fstype=FS_DEFAULT, debug=False, size_in_MiB=None):
     '''
     add_partition('/dev/sda', 1, 32768, 65535)
     '''
-    if end is not None and end <= start:
+    if debug:
+        print("add_partition() -- node=%s; partno=%s; start=%s; end=%s; fstype=%s; size_in_MiB=%s" % (str(node), str(partno), str(start), str(end), fstype, str(size_in_MiB)))
+    if end is not None and start is not None and end <= start:
         raise ValueError("The partition must end after it starts")
-    if partno == 1:
-        res = add_partition_SUB(node, partno, start, end, fstype, with_partno_Q=False)
-        if res != 0:
-            res = add_partition_SUB(node, partno, start, end, fstype)
+    if partno in (1, 5):
+        res = add_partition_SUB(node, partno, start, end, fstype, with_partno_Q=False, debug=debug, size_in_MiB=size_in_MiB)
+        if not was_this_partition_created(node, partno):
+            res = add_partition_SUB(node, partno, start, end, fstype, debug=debug, size_in_MiB=size_in_MiB)
     else:
-        res = add_partition_SUB(node, partno, start, end, fstype)
-    return res
+        res = add_partition_SUB(node, partno, start, end, fstype, debug=debug, size_in_MiB=size_in_MiB)
+    return 0 if was_this_partition_created(node, partno) else res + 1
 
 
 def delete_partition(node, partno):
-    return os.system('''sfdisk -d %s 2> /dev/null| grep -vx "%s.*%d :.*" | sfdisk -f %s >/dev/null 2>/dev/null''' % (node, node, partno, node))
+    return os.system('''sfdisk %s --del %d > /dev/null 2> /dev/null''' % (node, partno))
 
 
 def get_list_of_all_disks():
@@ -98,9 +131,12 @@ def get_altpath_from_node_path(node_path, searchby):
         raise FileNotFoundError("Cannot search by %s -- directory %s not found" % (searchby, altdir))
     for p in os.listdir(altdir):
         fullpath = os.path.join(altdir, p)
-        linked_to = os.path.realpath(fullpath)
-        if node_path == linked_to:
-            return fullpath
+        try:
+            linked_to = os.path.realpath(fullpath)
+            if node_path == linked_to:
+                return fullpath
+        except FileNotFoundError:
+            pass
     return None
 
 
@@ -133,7 +169,7 @@ def add_useful_info_to_raw_json_record_from_sfdisk(node_path, json_rec):
         json_rec['partitiontable'][i] = get_altpath_from_node_path(node_path, i)
         for partition in json_rec['partitiontable']['partitions']:
             for i in ('id', 'label', 'partuuid', 'path', 'uuid'):
-                partition[i] = get_altpath_from_node_path(partition['node'], i)
+                partition[i] = get_altpath_from_node_path(node_path, i)
     return json_rec
 
 
@@ -199,8 +235,8 @@ class DiskPartition:
 
         # TODO: QQQ add locking
     def __str__(self):
-        return """node=%s owner=%s start=%d size=%d fstype=%s label=%s partuuid=%s path=%s uuid=%s""" % \
-            (self._node, self._owner, self._start, self._size, self._fstype, self._label, self._partuuid, self._path, self._uuid)
+        return """node=%s partno=%d owner=%s start=%d size=%d fstype=%s label=%s partuuid=%s path=%s uuid=%s""" % \
+            (self._node, self._partno, self._owner, self._start, self._size, self._fstype, self._label, self._partuuid, self._path, self._uuid)
 
     def __repr__(self):
         return f'DiskPartition(node="%s")' % self.node
@@ -228,6 +264,20 @@ class DiskPartition:
 
     @node.deleter
     def node(self):
+        raise AttributeError("Not permitted")
+
+    @property
+    def partno(self):
+        """I'm the 'partno' property."""
+        n = deduce_partno(self.node)
+        return n
+
+    @partno.setter
+    def partno(self, value):
+        raise AttributeError("Not permitted")
+
+    @partno.deleter
+    def partno(self):
         raise AttributeError("Not permitted")
 
     @property
@@ -293,19 +343,6 @@ class DiskPartition:
 
     @fstype.deleter
     def fstype(self):
-        raise AttributeError("Not permitted")
-
-    @property
-    def size_in_MiB(self):
-        """I'm the 'size_in_MiB' property."""
-        return self._size / 1024 / 1024
-
-    @size_in_MiB.setter
-    def size_in_MiB(self, value):
-        self._size = value * 1024 * 1024
-
-    @size_in_MiB.deleter
-    def size_in_MiB(self):
         raise AttributeError("Not permitted")
 
     @property
@@ -377,7 +414,7 @@ class DiskPartition:
 class Disk:
 
     def __init__(self, node):
-        self.__user_specified_node = node
+        self.__user_specified_node = os.path.realpath(node)
         if not is_this_a_disk(self.__user_specified_node):
             raise AttributeError("Nope -- %s is not a disk" % self.__user_specified_node)
         self.__cache = None
@@ -391,8 +428,13 @@ class Disk:
     def __repr__(self):
         return f'Disk(node="%s")' % self.node
 
-    def update(self):
+    def partprobe(self):
         os.system("sync;sync;sync;partprobe %s;sync;sync;sync" % self.__user_specified_node)
+
+    def update(self, partprobe=False):
+        print("Initializing Disk(%s)" % self.__user_specified_node)
+        if partprobe:
+            self.partprobe()
         self.__cache = get_disk_record(self.__user_specified_node)
         self._id = self.__cache.partitiontable.id
         self._node = self.__cache.partitiontable.node
@@ -403,10 +445,13 @@ class Disk:
         self._sector_size = self.__cache.partitiontable.sector_size
         self._size_in_sectors = self.__cache.partitiontable.size_in_sectors
         self._partitions = []
+        print('==> node:', self.node)
         for p in self.__cache.partitiontable.partitions:
+            print('Initializing partition %s' % p.node)
             self.partitions.append(DiskPartition(p.node))
         if self.overlapping:
             print("Warning -- partitions in %s are overlapping" % self.node)
+        print("Finished initializing Disk(node=%s)" % self.node)
 
         # for p in self.__cache.partitiontable.partitions:
         #     for q in self.__cache.partitiontable.partitions:
@@ -540,7 +585,9 @@ class Disk:
         for p_prev in self.partitions:
             for p_next in self.partitions:
                 if p_prev.start < p_next.start \
-                and p_prev.end >= p_next.start:
+                and p_prev.end >= p_next.start \
+                and p_prev.fstype != FS_EXTENDED \
+                and p_next.fstype != FS_EXTENDED:
                     return True
         return False
 
@@ -552,38 +599,70 @@ class Disk:
     def overlapping(self):
         raise AttributeError("Not permitted")
 
-    def add_partition(self, partno, start=None, end=None, fstype='83', size_in_MiB=None):
-        if len(self.partitions) == 4:
-            raise AttributeError("Cannot have >%d partitions in %s" % (len(self.partitions), self.node))
-        if start is None and len(self.partitions) >= 1:
-            start = 1 + [r for r in self.partitions if r.node[-1:] == str(partno - 1)][0].end
-            partno_start_after_me_lst = [r.start for r in self.partitions if r.node[-1:] == str(partno + 1)]
-            if len(partno_start_after_me_lst) > 0:
-                end = partno_start_after_me_lst[0] - 1
-        if size_in_MiB is not None:
-            assert end is None, "Specify either end=... or size_in_MIB... but don't specify both"
-            end = start + (size_in_MiB * 1024 * 1024) // self.sector_size
+    def add_partition(self, partno=None, start=None, end=None, fstype=FS_DEFAULT, debug=False, size_in_MiB=None):
+        if end is not None and size_in_MiB is not None:
+            raise AttributeError("Specify either end=... or size_in_MIB... but don't specify both")
+        if partno is None:
+            if len(self.partitions) == 0:
+                partno = 1
+            else:
+                partno = max([r.partno for r in self.partitions]) + 1
+        if partno < 1 or partno > 63:
+            raise AttributeError("The specified partno %d is too low/high" % partno)
+        if partno in [r.partno for r in self.partitions]:
+            raise AttributeError("Partition %d exists already. I cannot create two of them." % partno)
+        if partno >= 5:
+            pass
+            # if start is None:
+            #     try:
+            #         start = [p for p in self.partitions if p.fstype == FS_EXTENDED][0].start + 2048 // self.sector_size
+            #         print("p%d will begin at %d" % (partno, start))
+            #     except IndexError:
+            #         raise AttributeError("Please specify start serctor of partition #%d of %s" % (partno, self.node))
+            # if end is None and size_in_MiB is None:
+            #     try:
+            #         end = [p for p in self.partitions if p.fstype == FS_EXTENDED][0].end
+            #         print("p%d will end at %d" % (partno, end))
+            #     except IndexError:
+            #         raise AttributeError("Please specify end serctor of partition #%d of %s" % (partno, self.node))
+        else:
+            if start is None and partno > 1:
+                try:
+                    start = [r for r in self.partitions if r.partno == partno - 1][0].end + 1
+                except IndexError:
+                    raise AttributeError("Please specify start serctor of partition #%d of %s" % (partno, self.node))
+            if end is None and size_in_MiB is None:
+                try:
+                    end = [r for r in self.partitions if r.partno == partno + 1][0].start - 1
+                except IndexError:
+                    pass
         try:
-            add_partition(self.node, partno, start, end, fstype)
+            add_partition(self.node, partno=partno, start=start, end=end, fstype=fstype, debug=debug, size_in_MiB=size_in_MiB)
             self.update()
             if self.overlapping:
                 delete_partition(self.node, partno)
                 raise AttributeError("Refusing to create partition #%d for %s -- it would overlap with another partition" % (partno, self.node))
         finally:
-            self.update()
+            self.update(partprobe=True)
         if not was_this_partition_created(self.node, partno):
             raise AttributeError("Failed to create partition #%d for %s" % (partno, self.node))
 
     def delete_all_partitions(self):
-        for i in range(5, -1, -1):
-            self.delete_partition(partno=i + 1)
-        self.update()
+        rev_list = self.partitions
+        rev_list.reverse()
+        for p in rev_list:
+            self.delete_partition(p.partno, update=False)
+        self.update(partprobe=True)
 
-    def delete_partition(self, partno):
-        try:
-            delete_partition(self.node, partno)
-        finally:
-            self.update()
+    def delete_partition(self, partno, update=True):
+        if was_this_partition_created(self.node, partno):
+            print("Deleting partition #%d from %s" % (partno, self.node))
+            try:
+                delete_partition(self.node, partno)
+            finally:
+                self.update(partprobe=update)
+        else:
+            print("No need to delete partition #%d from %s --- that partition does not exist" % (partno, self.node))
 
     def dump(self):
         outtxt = '''label: {disk_label}
