@@ -2,6 +2,8 @@
 Created on Oct 18, 2021
 
 @author: Tom Blackshaw
+TODO Write inline docs & comments
+TODO Write unit tests
 '''
 
 from collections import namedtuple
@@ -14,33 +16,68 @@ FS_EXTENDED = '5'
 FS_DEFAULT = '83'
 
 
-def is_this_a_disk(device_path):
+def is_this_a_disk(device_path, insist_on_this_existence_state=None):
     '''
     Is this a disk (not a partition)?
     e.g. /dev/sda     YES
          /dev/sda1    NO
     '''
-    if not os.path.exists(device_path):
-        raise FileNotFoundError("%s not found" % device_path)
-    if b'' != subprocess.run(['sfdisk', '-J', device_path], stderr=subprocess.DEVNULL, stdout=subprocess.PIPE).stdout:
-        return True
+    if insist_on_this_existence_state is not None:
+        exists = insist_on_this_existence_state
     else:
+        exists = os.path.exists(device_path)
+    if device_path in (None, '/') or not exists:
+        raise ValueError("%s not found" % str(device_path))
+    linked_to = os.path.realpath(device_path)
+    search_for_this_stub = os.path.basename(linked_to)
+    if device_path.count('/') > 3 and linked_to.count('/') <= 3:
+        return is_this_a_disk(linked_to, insist_on_this_existence_state=insist_on_this_existence_state)
+    elif deduce_partno(device_path) in (None, '') and search_for_this_stub.startswith('mmc'):
+        return True
+    elif search_for_this_stub.startswith('mmc'):
+        if ('p' in search_for_this_stub[-4:-1]) \
+        and search_for_this_stub[-1].isdigit():
+            return False
+        else:
+            return True
+    elif search_for_this_stub[:2] in ('sd', 'hd', 'scd', 'md'):
+        if deduce_partno(device_path) not in (None, ''):
+            return False
+        else:
+            return True
+    elif os.path.isdir(device_path):
+        raise ValueError("%s is a directory, not a device")
+    elif 'zram' in os.path.basename(device_path):
         return False
+    else:
+        raise ValueError("I do not know if %s is a disk or not" % device_path)
 
 
 def deduce_partno(node):
-    s = node.split('/')[-1]
-    i = len(s) - 1
-    while i >= 0 and s[i].isdigit():
-        i = i - 1
-    return int(s[i + 1:])
+    if node in (None, '') or os.path.isdir(node) or not node.startswith('/dev/') or node == '/dev/':
+        raise ValueError("Node %s is a silly value" % str(node))
+    try:
+        s = node.split('/')[-1]
+        i = len(s) - 1
+        while i >= 0 and s[i].isdigit():
+            i = i - 1
+        return int(s[i + 1:])
+    except (AttributeError, ValueError):
+        return ''
 
 
 def set_disk_id(node, new_diskid):
     os.system('''echo "x\ni\n{new_diskid}\nr\nw" | fdisk {node}'''.format(node=node, new_diskid=new_diskid))
 
 
+def delete_all_partitions(node):
+    realnode = os.path.realpath(node)
+    os.system('''sfdisk -d {node}| grep -vx "{node}.*[0-9] : .*"| sfdisk -f {node} 2>/dev/null >/dev/null'''.format(node=realnode))
+    os.system("partprobe {node}".format(node=realnode))
+
+
 def was_this_partition_created(node, partno):
+    node = os.path.realpath(node)
     res = os.system('''
 node=%s
 partno=%d
@@ -59,6 +96,7 @@ from my.partitiontools import *
 d = Disk('/dev/disk/by-id/usb-Mass_Storage_Device_121220160204-0:0')  # d = Disk('/dev/sda')
 add_partition_SUB(node='/dev/sda', partno=5, start=125042688, with_partno_Q=False, end=None, size_in_MiB=100)
     '''
+    node = os.path.realpath(node)
     if debug:
         print("add_partition_SUB() -- node=%s; partno=%s; start=%s; end=%s; size_in_MiB=%s" % (str(node), str(partno), str(start), str(end), str(size_in_MiB)))
     if end is not None and size_in_MiB is not None:
@@ -87,28 +125,35 @@ add_partition_SUB(node='/dev/sda', partno=5, start=125042688, with_partno_Q=Fals
                 'e' if fstype == FS_EXTENDED else 'l' if partno >= 5 else 'p',
                 '' if not start else str(start),
                 '' if not end_str else end_str, node, debug_str))
-    res += os.system('''sfdisk --part-type {node} {partno} {fstype}{debug}'''.format(node=node, partno=partno, fstype=fstype,
+    res += os.system('''sfdisk --part-type {node} {partno} {fstype} {debug}'''.format(node=node, partno=partno, fstype=fstype,
                                                                                      debug='' if debug else '> /dev/null 2> /dev/null'))
 
 
-def add_partition(node, partno, start, end, fstype=FS_DEFAULT, debug=False, size_in_MiB=None):
+def add_partition(node, partno, start, end=None, fstype=FS_DEFAULT, debug=False, size_in_MiB=None):
     '''
     add_partition('/dev/sda', 1, 32768, 65535)
     '''
+    node = os.path.realpath(node)
     if debug:
         print("add_partition() -- node=%s; partno=%s; start=%s; end=%s; fstype=%s; size_in_MiB=%s" % (str(node), str(partno), str(start), str(end), fstype, str(size_in_MiB)))
     if end is not None and start is not None and end <= start:
         raise ValueError("The partition must end after it starts")
+    res = 0
     if partno in (1, 5):
         res = add_partition_SUB(node, partno, start, end, fstype, with_partno_Q=False, debug=debug, size_in_MiB=size_in_MiB)
         if not was_this_partition_created(node, partno):
             res = add_partition_SUB(node, partno, start, end, fstype, debug=debug, size_in_MiB=size_in_MiB)
+    elif partno > 5 and not was_this_partition_created(node, partno - 1):
+        raise AttributeError("Because partition #%d of %s does not exist, I cannot create #%d. Logical partitions cannot be added without screwing up their order. Sorry." % (partno - 1, node, partno))
     else:
         res = add_partition_SUB(node, partno, start, end, fstype, debug=debug, size_in_MiB=size_in_MiB)
-    return 0 if was_this_partition_created(node, partno) else res + 1
+    return 0 if was_this_partition_created(node, partno) else 1
 
 
 def delete_partition(node, partno):
+    if partno >= 5 and was_this_partition_created(node, partno + 1):
+        raise AttributeError("Because partition #%d of %s exists, I cannot create #%d. Logical partitions cannot be removed without screwing up their order. Sorry." % (partno + 1, node, partno))
+
     return os.system('''sfdisk %s --del %d > /dev/null 2> /dev/null''' % (node, partno))
 
 
@@ -174,8 +219,8 @@ def add_useful_info_to_raw_json_record_from_sfdisk(node_path, json_rec):
 
 
 def get_disk_record(node_path):
-    if not os.path.exists(node_path):
-        raise FileNotFoundError('Cannot get disk record -- %s not found', node_path)
+    if node_path in (None, '/', '') or not os.path.exists(node_path) or os.path.isdir(node_path):
+        raise ValueError('Cannot get disk record -- %s not found', str(node_path))
     json_rec = get_raw_json_record_from_sfdisk(node_path)
     _ = add_useful_info_to_raw_json_record_from_sfdisk(node_path, json_rec)
     res = json.loads(json.dumps(json_rec), object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
@@ -432,7 +477,7 @@ class Disk:
         os.system("sync;sync;sync;partprobe %s;sync;sync;sync" % self.__user_specified_node)
 
     def update(self, partprobe=False):
-        print("Initializing Disk(%s)" % self.__user_specified_node)
+#        print("Initializing Disk(%s)" % self.__user_specified_node)
         if partprobe:
             self.partprobe()
         self.__cache = get_disk_record(self.__user_specified_node)
@@ -445,13 +490,13 @@ class Disk:
         self._sector_size = self.__cache.partitiontable.sector_size
         self._size_in_sectors = self.__cache.partitiontable.size_in_sectors
         self._partitions = []
-        print('==> node:', self.node)
+#        print('==> node:', self.node)
         for p in self.__cache.partitiontable.partitions:
-            print('Initializing partition %s' % p.node)
+#            print('Initializing partition %s' % p.node)
             self.partitions.append(DiskPartition(p.node))
         if self.overlapping:
             print("Warning -- partitions in %s are overlapping" % self.node)
-        print("Finished initializing Disk(node=%s)" % self.node)
+#        print("Finished initializing Disk(node=%s)" % self.node)
 
         # for p in self.__cache.partitiontable.partitions:
         #     for q in self.__cache.partitiontable.partitions:
@@ -648,15 +693,12 @@ class Disk:
             raise AttributeError("Failed to create partition #%d for %s" % (partno, self.node))
 
     def delete_all_partitions(self):
-        rev_list = self.partitions
-        rev_list.reverse()
-        for p in rev_list:
-            self.delete_partition(p.partno, update=False)
+        delete_all_partitions(self.node)
         self.update(partprobe=True)
 
     def delete_partition(self, partno, update=True):
         if was_this_partition_created(self.node, partno):
-            print("Deleting partition #%d from %s" % (partno, self.node))
+#            print("Deleting partition #%d from %s" % (partno, self.node))
             try:
                 delete_partition(self.node, partno)
             finally:
