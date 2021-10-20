@@ -3,6 +3,12 @@ Created on Oct 16, 2021
 
 @author: Tom Blackshaw
 
+
+FOFTA - from one filesystem to another
+
+To run a unit test:-
+# python3 -m unittest test/test_partitiontools
+
 '''
 # from my.partitiontools import *
 from my.partitiontools import get_list_of_all_disks
