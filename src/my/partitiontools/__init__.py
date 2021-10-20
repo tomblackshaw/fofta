@@ -6,7 +6,6 @@ TODO: Write inline docs & comments
 TODO: Write Google-style doc header
 '''
 
-from cgitb import reset
 from collections import namedtuple
 import json
 import os
@@ -734,18 +733,6 @@ class Disk:
             raise AttributeError("Partition %d exists already. I cannot create two of them." % partno)
         if partno >= 5:
             pass
-            # if start is None:
-            #     try:
-            #         start = [p for p in self.partitions if p.fstype == FS_EXTENDED][0].start + 2048 // self.sector_size
-            #         print("p%d will begin at %d" % (partno, start))
-            #     except IndexError:
-            #         raise AttributeError("Please specify start serctor of partition #%d of %s" % (partno, self.node))
-            # if end is None and size_in_MiB is None:
-            #     try:
-            #         end = [p for p in self.partitions if p.fstype == FS_EXTENDED][0].end
-            #         print("p%d will end at %d" % (partno, end))
-            #     except IndexError:
-            #         raise AttributeError("Please specify end serctor of partition #%d of %s" % (partno, self.node))
         else:
             if start is None and partno > 1:
                 try:
