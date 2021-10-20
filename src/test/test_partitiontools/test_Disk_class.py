@@ -74,7 +74,7 @@ class TestCreateFullThenAddOne(unittest.TestCase):
 
     def testName(self):
         self.disk.add_partition(partno=1)
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(SystemError):
             self.disk.add_partition(partno=2, size_in_MiB=100)
 
 
@@ -93,11 +93,11 @@ class TestCreateDeliberatelyOverlappingPartitions(unittest.TestCase):
             self.disk.add_partition(partno=2,
                                     start=0,
                                     end=self.disk.partitions[-1].start)
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(SystemError):
             self.disk.add_partition(partno=2,
                                     start=self.disk.partitions[-1].start,
                                     end=self.disk.partitions[-1].end)
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(SystemError):
             self.disk.add_partition(partno=2,
                                     start=self.disk.partitions[-1].end,
                                     end=self.disk.partitions[-1].end + 99999)
@@ -129,7 +129,7 @@ class TestMakeFourAndFiddleWithP2(unittest.TestCase):
         self.disk.delete_partition(2)
         self.assertEqual(self.disk.partitions[2].partno, 4)
         self.assertEqual(len(self.disk.partitions), 3)
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(SystemError):
             self.disk.add_partition()
         self.disk.add_partition(2)
         self.assertEqual(self.disk.partitions[0].partno, 1)
@@ -163,7 +163,7 @@ class TestLogicalPartitions_ONE(unittest.TestCase):
         self.disk.add_partition(size_in_MiB=1024)
         self.disk.add_partition(size_in_MiB=1024)
         self.disk.add_partition(size_in_MiB=1024)
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(SystemError):
             self.disk.add_partition()
         self.disk.delete_partition(4)
         self.disk.add_partition(fstype=FS_EXTENDED)
@@ -249,7 +249,7 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.assertTrue(was_this_partition_created(node=self.disk.node, partno=5))
         self.assertFalse(was_this_partition_created(node=self.disk.node, partno=6))
         self.assertFalse(was_this_partition_created(node=self.disk.node, partno=7))
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(SystemError):
             self.disk.add_partition(partno=7, size_in_MiB=100)
         self.assertTrue(was_this_partition_created(node=self.disk.node, partno=5))
         self.assertFalse(was_this_partition_created(node=self.disk.node, partno=6))
@@ -286,7 +286,7 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
     def testDeleteHighestLogical(self):
         self.disk.add_partition(5, size_in_MiB=100)
         self.disk.add_partition(6, size_in_MiB=100)
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(SystemError):
             self.disk.delete_partition(5)
         self.assertTrue(was_this_partition_created(self.disk.node, 5))
         self.assertTrue(was_this_partition_created(self.disk.node, 6))

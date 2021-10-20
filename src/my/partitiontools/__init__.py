@@ -6,6 +6,7 @@ TODO Write inline docs & comments
 TODO Write unit tests
 '''
 
+from cgitb import reset
 from collections import namedtuple
 import json
 import os
@@ -97,6 +98,7 @@ d = Disk('/dev/disk/by-id/usb-Mass_Storage_Device_121220160204-0:0')  # d = Disk
 add_partition_SUB(node='/dev/sda', partno=5, start=125042688, with_partno_Q=False, end=None, size_in_MiB=100)
     '''
     node = os.path.realpath(node)
+    res = 0
     if debug:
         print("add_partition_SUB() -- node=%s; partno=%s; start=%s; end=%s; size_in_MiB=%s" % (str(node), str(partno), str(start), str(end), str(size_in_MiB)))
     if end is not None and size_in_MiB is not None:
@@ -127,6 +129,7 @@ add_partition_SUB(node='/dev/sda', partno=5, start=125042688, with_partno_Q=Fals
                 '' if not end_str else end_str, node, debug_str))
     res += os.system('''sfdisk --part-type {node} {partno} {fstype} {debug}'''.format(node=node, partno=partno, fstype=fstype,
                                                                                      debug='' if debug else '> /dev/null 2> /dev/null'))
+    return res
 
 
 def add_partition(node, partno, start, end=None, fstype=FS_DEFAULT, debug=False, size_in_MiB=None):
@@ -144,17 +147,28 @@ def add_partition(node, partno, start, end=None, fstype=FS_DEFAULT, debug=False,
         if not was_this_partition_created(node, partno):
             res = add_partition_SUB(node, partno, start, end, fstype, debug=debug, size_in_MiB=size_in_MiB)
     elif partno > 5 and not was_this_partition_created(node, partno - 1):
-        raise AttributeError("Because partition #%d of %s does not exist, I cannot create #%d. Logical partitions cannot be added without screwing up their order. Sorry." % (partno - 1, node, partno))
+        raise SystemError("Because partition #%d of %s does not exist, I cannot create #%d. Logical partitions cannot be added without screwing up their order. Sorry." % (partno - 1, node, partno))
     else:
         res = add_partition_SUB(node, partno, start, end, fstype, debug=debug, size_in_MiB=size_in_MiB)
-    return 0 if was_this_partition_created(node, partno) else 1
+    if not was_this_partition_created(node, partno):
+        os.system('sync;sync;sync;partprobe;sync;sync;sync')
+    if not was_this_partition_created(node, partno):
+        raise SystemError("Failed to add partition #{partno} to {node}".format(partno=partno, node=node))
+    del res
+    return 0  # Throw away res if the partition was successfully created
 
 
 def delete_partition(node, partno):
     if partno >= 5 and was_this_partition_created(node, partno + 1):
-        raise AttributeError("Because partition #%d of %s exists, I cannot create #%d. Logical partitions cannot be removed without screwing up their order. Sorry." % (partno + 1, node, partno))
+        raise SystemError("Because partition #%d of %s exists, I cannot create #%d. Logical partitions cannot be removed without screwing up their order. Sorry." % (partno + 1, node, partno))
 
-    return os.system('''sfdisk %s --del %d > /dev/null 2> /dev/null''' % (node, partno))
+    res = os.system('''sfdisk %s --del %d > /dev/null 2> /dev/null''' % (node, partno))
+    if was_this_partition_created(node, partno):
+        os.system('sync;sync;sync;partprobe;sync;sync;sync')
+    if was_this_partition_created(node, partno):
+        raise SystemError("Failed to delete partition #{partno} to {node}".format(partno=partno, node=node))
+    del res
+    return 0  # Throw away res if the partition was successfully deleted
 
 
 def get_list_of_all_disks():
@@ -274,7 +288,7 @@ class DiskPartition:
         self.__user_specified_node = devpath
         self._owner = find_node_to_which_a_partition_belongs(self.__user_specified_node)
         if self._owner is None:
-            raise AttributeError("%s does not belong to any disk" % self.__user_specified_node)
+            raise SystemError("%s does not belong to any disk" % self.__user_specified_node)
         self.__cache = None
         self.update()
 
@@ -461,7 +475,7 @@ class Disk:
     def __init__(self, node):
         self.__user_specified_node = os.path.realpath(node)
         if not is_this_a_disk(self.__user_specified_node):
-            raise AttributeError("Nope -- %s is not a disk" % self.__user_specified_node)
+            raise SystemError("Nope -- %s is not a disk" % self.__user_specified_node)
         self.__cache = None
         self.update()
 
@@ -675,7 +689,7 @@ class Disk:
                 try:
                     start = [r for r in self.partitions if r.partno == partno - 1][0].end + 1
                 except IndexError:
-                    raise AttributeError("Please specify start serctor of partition #%d of %s" % (partno, self.node))
+                    raise AttributeError("Please specify start sector of partition #%d of %s" % (partno, self.node))
             if end is None and size_in_MiB is None:
                 try:
                     end = [r for r in self.partitions if r.partno == partno + 1][0].start - 1
@@ -690,7 +704,7 @@ class Disk:
         finally:
             self.update(partprobe=True)
         if not was_this_partition_created(self.node, partno):
-            raise AttributeError("Failed to create partition #%d for %s" % (partno, self.node))
+            raise SystemError("Failed to create partition #%d for %s" % (partno, self.node))
 
     def delete_all_partitions(self):
         delete_all_partitions(self.node)
