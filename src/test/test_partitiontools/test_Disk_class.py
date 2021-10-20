@@ -186,23 +186,6 @@ class TestLogicalPartitions_ONE(unittest.TestCase):
         self.assertTrue(self.disk.partitions[2].partno == 3)
         self.assertEqual(self.disk.partitions[2].start, old_p3_start)
 
-'''
-from my.partitiontools import *
-d = Disk('/dev/sda')
-d.delete_all_partitions()
-d.add_partition(size_in_MiB=1024)
-d.add_partition(size_in_MiB=1024)
-d.add_partition(size_in_MiB=1024)
-d.add_partition(fstype=FS_EXTENDED)
-d.add_partition(partno=5, size_in_MiB=100)
-d.add_partition(partno=6, size_in_MiB=100)
-d.delete_partition(5)
-was_this_partition_created(d.node, 5)
-was_this_partition_created(d.node, 6)
-
-
-'''
-
 
 class TestLogicalPartitions_TWO(unittest.TestCase):
 
