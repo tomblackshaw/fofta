@@ -7,13 +7,9 @@ import os
 import sys
 from test import MY_TESTDISK_NODE
 import unittest
-import unittest
 
-from my.partitiontools import Disk, is_this_a_disk, deduce_partno, \
-    get_disk_record, delete_all_partitions, was_this_partition_created, \
-    FS_EXTENDED, delete_partition
-from test.test_partitiontools import SAMPLE_LIST_OF_BOGUS_PARAMS, \
-    SAMPLE_LIST_OF_DRIVES_STUBS, SAMPLE_LIST_OF_DODGY_STUBS
+from my.partitiontools import Disk, is_this_a_disk, was_this_partition_created, \
+    FS_EXTENDED
 
 
 class TestAAADiskClassCreation(unittest.TestCase):
