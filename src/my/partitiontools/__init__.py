@@ -2,8 +2,8 @@
 Created on Oct 18, 2021
 
 @author: Tom Blackshaw
-TODO Write inline docs & comments
-TODO Write unit tests
+TODO: Write inline docs & comments
+TODO: Write Google-style doc header
 '''
 
 from cgitb import reset
@@ -19,6 +19,7 @@ FS_DEFAULT = '83'
 
 def is_this_a_disk(device_path, insist_on_this_existence_state=None):
     '''
+    TODO: Write Google-style doc header
     Is this a disk (not a partition)?
     e.g. /dev/sda     YES
          /dev/sda1    NO
@@ -55,6 +56,9 @@ def is_this_a_disk(device_path, insist_on_this_existence_state=None):
 
 
 def deduce_partno(node):
+    '''
+    TODO: Write Google-style doc header
+    '''
     if node in (None, '') or os.path.isdir(node) or not node.startswith('/dev/') or node == '/dev/':
         raise ValueError("Node %s is a silly value" % str(node))
     try:
@@ -68,16 +72,25 @@ def deduce_partno(node):
 
 
 def set_disk_id(node, new_diskid):
+    '''
+    TODO: Write Google-style doc header
+    '''
     os.system('''echo "x\ni\n{new_diskid}\nr\nw" | fdisk {node}'''.format(node=node, new_diskid=new_diskid))
 
 
 def delete_all_partitions(node):
+    '''
+    TODO: Write Google-style doc header
+    '''
     realnode = os.path.realpath(node)
     os.system('''sfdisk -d {node}| grep -vx "{node}.*[0-9] : .*"| sfdisk -f {node} 2>/dev/null >/dev/null'''.format(node=realnode))
     os.system("partprobe {node}".format(node=realnode))
 
 
 def was_this_partition_created(node, partno):
+    '''
+    TODO: Write Google-style doc header
+    '''
     node = os.path.realpath(node)
     res = os.system('''
 node=%s
@@ -93,9 +106,7 @@ fullpartitiondev=$(sfdisk -d $node | grep -x "$node.*$partno :.*" | head -n1 | c
 
 def add_partition_SUB(node, partno, start, end, fstype, with_partno_Q=True, size_in_MiB=None, debug=False):
     '''
-from my.partitiontools import *
-d = Disk('/dev/disk/by-id/usb-Mass_Storage_Device_121220160204-0:0')  # d = Disk('/dev/sda')
-add_partition_SUB(node='/dev/sda', partno=5, start=125042688, with_partno_Q=False, end=None, size_in_MiB=100)
+    TODO: Write Google-style doc header
     '''
     node = os.path.realpath(node)
     res = 0
@@ -134,7 +145,7 @@ add_partition_SUB(node='/dev/sda', partno=5, start=125042688, with_partno_Q=Fals
 
 def add_partition(node, partno, start, end=None, fstype=FS_DEFAULT, debug=False, size_in_MiB=None):
     '''
-    add_partition('/dev/sda', 1, 32768, 65535)
+    TODO: Write Google-style doc header
     '''
     node = os.path.realpath(node)
     if debug:
@@ -159,6 +170,9 @@ def add_partition(node, partno, start, end=None, fstype=FS_DEFAULT, debug=False,
 
 
 def delete_partition(node, partno):
+    '''
+    TODO: Write Google-style doc header
+    '''
     if partno >= 5 and was_this_partition_created(node, partno + 1):
         raise SystemError("Because partition #%d of %s exists, I cannot create #%d. Logical partitions cannot be removed without screwing up their order. Sorry." % (partno + 1, node, partno))
 
@@ -172,6 +186,9 @@ def delete_partition(node, partno):
 
 
 def get_list_of_all_disks():
+    '''
+    TODO: Write Google-style doc header
+    '''
     all_dev_entries = []
     with open('/proc/partitions', 'r') as f:
         s = f.read().split('\n')
@@ -183,6 +200,9 @@ def get_list_of_all_disks():
 
 
 def get_altpath_from_node_path(node_path, searchby):
+    '''
+    TODO: Write Google-style doc header
+    '''
     if not os.path.exists(node_path):
         raise FileNotFoundError("Node path %s not found" % node_path)
     altdir = "/dev/disk/by-%s" % searchby
@@ -200,6 +220,9 @@ def get_altpath_from_node_path(node_path, searchby):
 
 
 def get_node_diskID_sizeB_sizeSecs_and_sectorsize(node_path):
+    '''
+    TODO: Write Google-style doc header
+    '''
     just_fdisk_op = subprocess.run(['fdisk', '-l', node_path], stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
     (disk_length_in_bytes, lab1, disk_length_in_sectors, lab2) = just_fdisk_op.stdout.decode('UTF-8').split('\n')[0].split(' ')[-4:]
     disk_id = [r for r in just_fdisk_op.stdout.decode('UTF-8').split('\n') if ': 0x' in r][0].split(' ')[-1]
@@ -210,12 +233,18 @@ def get_node_diskID_sizeB_sizeSecs_and_sectorsize(node_path):
 
 
 def get_raw_json_record_from_sfdisk(node_path):
+    '''
+    TODO: Write Google-style doc header
+    '''
     sfdisk_output = subprocess.run(['sfdisk', '-J', node_path], stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
     res = json.loads(sfdisk_output.stdout.decode('UTF-8'))
     return res
 
 
 def add_useful_info_to_raw_json_record_from_sfdisk(node_path, json_rec):
+    '''
+    TODO: Write Google-style doc header
+    '''
     disk_id, node_size_in_bytes, node_size_in_sectors, sector_size = get_node_diskID_sizeB_sizeSecs_and_sectorsize(node_path)
     json_rec['partitiontable']['sector_size'] = sector_size
     json_rec['partitiontable']['size_in_bytes'] = node_size_in_bytes
@@ -233,6 +262,9 @@ def add_useful_info_to_raw_json_record_from_sfdisk(node_path, json_rec):
 
 
 def get_disk_record(node_path):
+    '''
+    TODO: Write Google-style doc header
+    '''
     if node_path in (None, '/', '') or not os.path.exists(node_path) or os.path.isdir(node_path):
         raise ValueError('Cannot get disk record -- %s not found', str(node_path))
     json_rec = get_raw_json_record_from_sfdisk(node_path)
@@ -242,6 +274,9 @@ def get_disk_record(node_path):
 
 
 def get_disk_record_from_all_disks():
+    '''
+    TODO: Write Google-style doc header
+    '''
     disks = []
     for devpath in get_list_of_all_disks():
         disks.append(get_disk_record(devpath))
@@ -249,6 +284,9 @@ def get_disk_record_from_all_disks():
 
 
 def find_node_to_which_a_partition_belongs(path_of_partition):
+    '''
+    TODO: Write Google-style doc header
+    '''
     if not os.path.exists(path_of_partition):
         raise FileNotFoundError("%s does not exist" % path_of_partition)
     for d in get_disk_record_from_all_disks():
@@ -259,6 +297,9 @@ def find_node_to_which_a_partition_belongs(path_of_partition):
 
 
 def is_this_partition_record_our_partition(path_of_partition, p):
+    '''
+    TODO: Write Google-style doc header
+    '''
     if path_of_partition == p.node \
     or path_of_partition == p.partuuid \
     or path_of_partition == p.uuid \
@@ -270,6 +311,9 @@ def is_this_partition_record_our_partition(path_of_partition, p):
 
 
 def find_partition_record(path_of_partition):
+    '''
+    TODO: Write Google-style doc header
+    '''
     if not os.path.exists(path_of_partition):
         raise FileNotFoundError("Cannot find partition %s" % path_of_partition)
     for d in get_disk_record_from_all_disks():
@@ -283,6 +327,9 @@ def find_partition_record(path_of_partition):
 
 
 class DiskPartition:
+    '''
+    TODO: Write Google-style doc header
+    '''
 
     def __init__(self, devpath):
         self.__user_specified_node = devpath
@@ -471,6 +518,9 @@ class DiskPartition:
 
 
 class Disk:
+    '''
+    TODO: Write Google-style doc header
+    '''
 
     def __init__(self, node):
         self.__user_specified_node = os.path.realpath(node)
@@ -491,6 +541,9 @@ class Disk:
         os.system("sync;sync;sync;partprobe %s;sync;sync;sync" % self.__user_specified_node)
 
     def update(self, partprobe=False):
+        '''
+        TODO: Write Google-style doc header
+        '''
 #        print("Initializing Disk(%s)" % self.__user_specified_node)
         if partprobe:
             self.partprobe()
@@ -522,6 +575,9 @@ class Disk:
 
     @disk_id.setter
     def disk_id(self, value):
+        '''
+        TODO: Write Google-style doc header
+        '''
         _ = int(value, 16)
         if len(value) != 10 or value[:2] != '0x':
             raise ValueError("%s is an invalid disk id string" % value)
@@ -641,6 +697,9 @@ class Disk:
 
     @property
     def overlapping(self):
+        '''
+        TODO: Write Google-style doc header
+        '''
         for p_prev in self.partitions:
             for p_next in self.partitions:
                 if p_prev.start < p_next.start \
@@ -659,6 +718,9 @@ class Disk:
         raise AttributeError("Not permitted")
 
     def add_partition(self, partno=None, start=None, end=None, fstype=FS_DEFAULT, debug=False, size_in_MiB=None):
+        '''
+        TODO: Write Google-style doc header
+        '''
         if end is not None and size_in_MiB is not None:
             raise AttributeError("Specify either end=... or size_in_MIB... but don't specify both")
         if partno is None:
@@ -707,10 +769,16 @@ class Disk:
             raise SystemError("Failed to create partition #%d for %s" % (partno, self.node))
 
     def delete_all_partitions(self):
+        '''
+        TODO: Write Google-style doc header
+        '''
         delete_all_partitions(self.node)
         self.update(partprobe=True)
 
     def delete_partition(self, partno, update=True):
+        '''
+        TODO: Write Google-style doc header
+        '''
         if was_this_partition_created(self.node, partno):
 #            print("Deleting partition #%d from %s" % (partno, self.node))
             try:
@@ -721,6 +789,9 @@ class Disk:
             print("No need to delete partition #%d from %s --- that partition does not exist" % (partno, self.node))
 
     def dump(self):
+        '''
+        TODO: Write Google-style doc header
+        '''
         outtxt = '''label: {disk_label}
 label-id: {disk_id}
 device: {node}
