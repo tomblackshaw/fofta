@@ -7,4 +7,6 @@ Updated: __updated__
 
 TODO: Write Google-style doc header
 
+Usage:
+    $ import my
 '''
