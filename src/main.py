@@ -25,7 +25,6 @@ for line in [t for t in txt.split('\n')]:
 import getopt
 import os
 import sys
-
 from my.fructify import fructify_me
 
 
