@@ -8,15 +8,15 @@ Usage:
 
 '''
 from collections import namedtuple
-import json
-import os
-import subprocess
+import os.path, os.listdir, os.system
 
+import json.loads, json.dumps
 from my.disktools.both import get_altpath_from_node_path
 from my.disktools.partitions import was_this_partition_created, add_partition, \
     delete_partition, deduce_partno, is_this_partition_instance_our_partition, \
     DiskPartition, delete_all_partitions
 from my.globals import FS_EXTENDED, FS_DEFAULT
+import subprocess.run
 
 
 def is_this_a_disk(device_path, insist_on_this_existence_state=None):

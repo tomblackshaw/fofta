@@ -3,13 +3,13 @@ Created on Oct 19, 2021
 
 @author: Tom Blackshaw
 '''
-import os
-import sys
+import os.path
 from test import MY_TESTDISK_NODE
 import unittest
 
-from my.partitiontools import is_this_a_disk, get_disk_record, \
-    delete_all_partitions
+from my.disktools.disks import is_this_a_disk, get_disk_record
+from my.disktools.partitions import     delete_all_partitions
+import sys.path
 from test.test_partitiontools import SAMPLE_LIST_OF_BOGUS_PARAMS
 
 

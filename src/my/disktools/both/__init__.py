@@ -11,10 +11,7 @@ Usage:
 '''
 
 from collections import namedtuple
-import json
-import os
-import random
-import subprocess
+import os.path, os.listdir
 
 from my.disktools.disks import get_disk_record_from_all_disks
 from my.globals import FS_EXTENDED, FS_DEFAULT

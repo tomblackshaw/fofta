@@ -6,7 +6,6 @@ Created on Oct 19, 2021
 import os
 import sys
 import unittest
-from my.partitiontools import is_this_a_disk
 
 SAMPLE_LIST_OF_DRIVES_STUBS = ('sda', 'sdb', 'sdp', 'mmcblk0', 'mmcblk1', 'mmcblk10')
 SAMPLE_LIST_OF_DODGY_STUBS = ('b0rk', 'sj5a', 'hx', 'tty100', 'vcsu2')

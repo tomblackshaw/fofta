@@ -10,11 +10,8 @@ import sys
 import unittest
 import unittest
 
-from my.partitiontools import is_this_a_disk, deduce_partno
-from my.partitiontools import is_this_a_disk, deduce_partno
-from test.test_partitiontools import SAMPLE_LIST_OF_BOGUS_PARAMS, \
-    SAMPLE_LIST_OF_DRIVES_STUBS, SAMPLE_LIST_OF_DODGY_STUBS
-from test.test_partitiontools import SAMPLE_LIST_OF_BOGUS_PARAMS, \
+from my.disktools.disks import is_this_a_disk
+from test.test_disktools import SAMPLE_LIST_OF_BOGUS_PARAMS, \
     SAMPLE_LIST_OF_DRIVES_STUBS, SAMPLE_LIST_OF_DODGY_STUBS
 
 

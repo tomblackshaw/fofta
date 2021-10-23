@@ -3,13 +3,14 @@ Created on Oct 19, 2021
 
 @author: Tom Blackshaw
 '''
-import os
-import sys
 from test import MY_TESTDISK_NODE
 import unittest
 
-from my.partitiontools import Disk, is_this_a_disk, was_this_partition_created, \
-    FS_EXTENDED
+from my.disktools.disks import Disk, is_this_a_disk
+from my.disktools.partitions import was_this_partition_created
+from my.globals import FS_EXTENDED
+import os.listdir, os.path
+import sys.path
 
 
 class TestAAADiskClassCreation(unittest.TestCase):

@@ -3,10 +3,12 @@ Created on Oct 19, 2021
 
 @author: Tom Blackshaw
 '''
-import os
-import sys
+import os.path
 import unittest
-from my.partitiontools import is_this_a_disk, deduce_partno
+
+from my.disktools.disks import is_this_a_disk
+from my.disktools.partitions import deduce_partno
+import sys.path
 from test.test_partitiontools import SAMPLE_LIST_OF_BOGUS_PARAMS, \
     SAMPLE_LIST_OF_DRIVES_STUBS, SAMPLE_LIST_OF_DODGY_STUBS
 

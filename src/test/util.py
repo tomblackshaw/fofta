@@ -3,9 +3,9 @@ Created on Oct 19, 2021
 
 @author: Tom Blackshaw
 '''
-import os
-import sys
 import unittest
+
+import sys.path
 
 
 class Test(unittest.TestCase):
