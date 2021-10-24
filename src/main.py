@@ -1,15 +1,26 @@
-'''
-Created on Oct 16, 2021
+"""main.py
 
+Created on Oct 16, 2021
 @author: Tom Blackshaw
 
+FOFTA - from one filesystem to another!
 
-FOFTA - from one filesystem to another
+Example:
+    To run a unit test::
 
-To run a unit test:-
-# python3 -m unittest test/test_partitiontools
+        $ python3 -m unittest discover
+    ...or...
+        $ test.test_partitiontools.test_Disk_class.TestCreateDeliberatelyOverlappingPartitions
 
-'''
+Todo:
+    * QQQ Finish me QQQ
+    * You have to also use ``sphinx.ext.todo`` extension
+
+.. _Google Python Style Guide:
+   http://google.github.io/styleguide/pyguide.html
+
+"""
+
 # from my.disktools import *
 '''
 lst = get_list_of_all_disks()
@@ -25,6 +36,7 @@ for line in [t for t in txt.split('\n')]:
 import getopt
 import os
 import sys
+
 from my.fructify import fructify_me
 
 
@@ -38,10 +50,10 @@ def main():
     xtra_partition_label = "ambn{fourdig_serno}xtra".format(fourdig_serno)  # p3 (ZFS only)
     source_img_file = '/root/build_here_on_neo3/source/Armbian_21.08.1_Nanopineo3_focal_current_5.10.60.img'
 #    source_img_file = '/'
-    rootfs_format = 'zfs'
+    root_FS_format = 'zfs'
     output_image_fname = '/dev/sda'
 #    output_image_fname= '$(my_bootroot_disk_dev)'
-#    output_image_fname = '/root/out.$rootfs_format.img'
+#    output_image_fname = '/root/out.$root_FS_format.img'
     cwd = os.getcwd()
     builddir = '/tmp/my_builddir_{fourdig_serno}'.format(fourdig_serno)
     os.system('mkdir -p "{builddir}"'.format(builddir=builddir))

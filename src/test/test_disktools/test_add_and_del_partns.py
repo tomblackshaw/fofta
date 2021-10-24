@@ -3,11 +3,12 @@ Created on Oct 19, 2021
 
 @author: Tom Blackshaw
 '''
+import os
+import sys
 from test import MY_TESTDISK_NODE
 import unittest
+
 from my.disktools.partitions import delete_partition, delete_all_partitions, add_partition, was_this_partition_created
-import os.system
-import sys.path
 
 
 class TestSimpleDeleteAll(unittest.TestCase):

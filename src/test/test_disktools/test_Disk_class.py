@@ -8,7 +8,7 @@ import unittest
 
 from my.disktools.disks import Disk, is_this_a_disk
 from my.disktools.partitions import was_this_partition_created
-from my.globals import FS_EXTENDED
+from my.globals import _FS_EXTENDED
 import os.listdir, os.path
 import sys.path
 
@@ -134,15 +134,15 @@ class TestMakeFourAndFiddleWithP2(unittest.TestCase):
         self.assertEqual(self.disk.partitions[2].partno, 3)
         self.assertEqual(self.disk.partitions[3].partno, 4)
         self.disk.delete_partition(2)
-        self.disk.add_partition(2, fstype=FS_EXTENDED)
+        self.disk.add_partition(2, fstype=_FS_EXTENDED)
         self.disk.delete_partition(2)
-        self.disk.add_partition(2, fstype=FS_EXTENDED, size_in_MiB=128)
+        self.disk.add_partition(2, fstype=_FS_EXTENDED, size_in_MiB=128)
         self.disk.delete_partition(2)
         self.assertEqual(self.disk.partitions[0].partno, 1)
         self.assertEqual(self.disk.partitions[1].partno, 3)
         self.assertEqual(self.disk.partitions[2].partno, 4)
         with self.assertRaises(AttributeError):
-            self.disk.add_partition(2, fstype=FS_EXTENDED, end=299999, size_in_MiB=256)
+            self.disk.add_partition(2, fstype=_FS_EXTENDED, end=299999, size_in_MiB=256)
 
 
 class TestLogicalPartitions_ONE(unittest.TestCase):
@@ -163,7 +163,7 @@ class TestLogicalPartitions_ONE(unittest.TestCase):
         with self.assertRaises(SystemError):
             self.disk.add_partition()
         self.disk.delete_partition(4)
-        self.disk.add_partition(fstype=FS_EXTENDED)
+        self.disk.add_partition(fstype=_FS_EXTENDED)
         self.disk.add_partition(5, size_in_MiB=256)
         self.assertTrue(was_this_partition_created(self.disk.node, 5))
         self.disk.delete_partition(5)
@@ -193,7 +193,7 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.disk.add_partition(size_in_MiB=1024)
         self.disk.add_partition(size_in_MiB=1024)
         self.disk.add_partition(size_in_MiB=1024)
-        self.disk.add_partition(fstype=FS_EXTENDED)
+        self.disk.add_partition(fstype=_FS_EXTENDED)
 
     def tearDown(self):
         self.disk.delete_all_partitions()

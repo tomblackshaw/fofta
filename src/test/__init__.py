@@ -7,7 +7,6 @@ Created on Oct 19, 2021
 # python3 -m unittest discover
 '''
 import os.path
-import sys
 import unittest
 
 MY_TESTDISK_NODE = '/dev/disk/by-id/usb-Mass_Storage_Device_121220160204-0:0'

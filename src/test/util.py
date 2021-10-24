@@ -4,7 +4,6 @@ Created on Oct 19, 2021
 @author: Tom Blackshaw
 '''
 import unittest
-
 import sys.path
 
 
