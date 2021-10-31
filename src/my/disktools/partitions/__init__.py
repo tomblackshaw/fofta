@@ -52,6 +52,7 @@ class DiskPartition:
 
     You pass me a /dev entry; the resultant class instance will make it
     easy for you to retrieve information about the specified partition.
+    DiskPartition is not threadsafe.
 
     Args:
         node (:obj:`str`): The /dev entry of the partition in
@@ -88,18 +89,7 @@ class DiskPartition:
             (self.node, self.partno, self.parentnode, self.start, self.size, self.fstype, self.label, self.partuuid, self.path, self.uuid)
 
     def update(self):
-        """Update the fields by reading sfdisk's output and processing it.
-
-        Note:
-            None.
-
-        Args:
-            None.
-
-        Returns:
-            None.
-
-        """
+        """Update the fields by reading sfdisk's output and processing it."""
         self.__cache = partition_namedtuple(self.node)
         self._start = self.__cache.start
         self._size = self.__cache.size
@@ -297,11 +287,10 @@ def deduce_partno(partition_path):
         None.
 
     Args:
-        param1: The first parameter.
-        param2: The second parameter.
+        partition_path (:obj:`str`): The /dev entry (e.g. /dev/sda1) of the partition.
 
     Returns:
-        True if successful, False otherwise.
+        int: Partition# of the specified partition (e.g. 1 if /dev/sda1).
 
     """
     if partition_path in (None, '') or os.path.isdir(partition_path) or not partition_path.startswith('/dev/') or partition_path == '/dev/':
@@ -317,11 +306,25 @@ def deduce_partno(partition_path):
 
 
 def overlapping(disk_path, hypothetically=None):
-    """
-    disk_path (:obj:`str`): The /dev entry (e.g. /dev/sda) of the node.
-    hypothetically ([int,int,int,str], optional): partno, start, end,
-    fstype_hex of a hypothetical partition. Answer as if the partition
-    existed.
+    """Are two or more partitions overlapping on the specified disk?
+    
+    Examing the specified disk. If its partitions are overlapping, *or* if
+    the hypothetical modification would cause an overlap, return True.
+    Else, return False.
+
+    Note:
+        This isn't perfect. It's good but it's not perfect.
+
+    Args:
+        disk_path (:obj:`str`): The /dev entry (e.g. /dev/sda1) of the disk.
+        hypothetically ([partno,start,end,fstype], optional): The proposed 
+            modification to the parton table. If such a modification would 
+            cause an overlap then return True, as if such an overlap already
+            existed.
+
+    Returns:
+        True if overap is/would be, False otherwise.
+    
     """
     from my.disktools.disks import disk_namedtuple
     rec = disk_namedtuple(disk_path)
@@ -402,7 +405,7 @@ fullpartitiondev=$(sfdisk -d $disk_path | grep -x "$disk_path.*$partno :.*" | he
 
 
 def get_partition_fstype(disk_path, partno):
-    """Get partition type -- '83', '5', ...? -- of the partition.
+    """Get partition type -- '83', '5', ...? -- of partn# of the disk.
 
     Note:
         None.
@@ -485,7 +488,7 @@ disk_path=%s partno=%d fieldno=%d" % (disk_path, partno, fieldno))
 
 
 def set_partition_fstype(disk_path, partno, fstype):
-    """Set partition type -- '83', '5', ...? -- of the partition.
+    """Set partition type -- '83', '5', ...? -- of partn# of the disk.
 
     Note:
         None.
@@ -511,17 +514,33 @@ def set_partition_fstype(disk_path, partno, fstype):
 
 
 def add_partition_SUB(disk_path, partno, start, end, fstype, with_partno_Q=True, size_in_MiB=None, debug=False):
-    """Class methods are similar to regular functions. QQQ
+    """Low-level subreoutine to add partition to specified disk.
 
     Note:
-        Do not include the `self` parameter in the ``Args`` section.
+        Do not call me. Call add_partition() instead.
 
     Args:
-        param1: The first parameter.
-        param2: The second parameter.
+        disk_path (:obj:`str`): The /dev entry of the disk in
+            question. This may be almost any /dev entry (including
+            softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
+            but I'll always deduce the real entry (probably /dev/sdX
+            or /dev/mmcblkN) and use that as my node path.
+        partno (int, optional): The partition#. If it is unspecified, the
+            next one will be used. For example, if the last partition is #2,
+            then #3 will be the new partition's number.
+        start (int): The first sector of the partition.
+        end (int, optional): The final cylinder of the partition. If it is
+            unspecified, the last possible cylinder on the disk.
+        fstype (:obj:`str`, optional): The hex code for fdisk to set the
+            filesystem type, broadly speaking. The default is probably 83.
+        size_in_MiB (int, optional): The size of the partition in mibibibbly
+            whatever.
 
     Returns:
-        True if successful, False otherwise.
+        None.
+
+    Raises:
+        ValueError: Bad parameters supplied.
 
     """
     disk_path = os.path.realpath(disk_path)
@@ -560,10 +579,10 @@ def add_partition_SUB(disk_path, partno, start, end, fstype, with_partno_Q=True,
 
 
 def add_partition(disk_path, partno, start, end=None, fstype=None, debug=False, size_in_MiB=None):
-    """Add a partition to the current disk.
+    """Add a partition to the specified disk.
 
     Note:
-        Do not include the `self` parameter in the ``Args`` section.
+        None.
 
     Args:
         disk_path (:obj:`str`): The /dev entry of the disk in
@@ -591,6 +610,7 @@ def add_partition(disk_path, partno, start, end=None, fstype=None, debug=False, 
         MissingPriorPartitionError: We can't create #N if #(N-1) is missing.
         ExistantPriorPartitionError: We can't create an existing partition.
         PartitionWasNotCreatedError: Creation of the partition failed.
+        
     """
     if overlapping(disk_path):
         raise PartitionsOverlapError("I cannot create a new partition until you've fixed the overlapping old ones.")
