@@ -1,13 +1,28 @@
-'''
-Created on Oct 19, 2021
+# -*- coding: utf-8 -*-
+"""my.disktools.disks
 
+Globally appealing functions.
+
+Created on Oct 16, 2021
 @author: Tom Blackshaw
+
+This module contains subroutines for viewing and modifying disks (but
+not partitions themselves). In particular, it contains the Disk class,
+which is used to control individual disks. The device's path is sent
+as a parameter (e.g. /dev/sda) to the class instance creator.
 
 Usage:-
     $ python3 -m unittest test.test_disktools.test_globals
     $ python3 -m unittest test.test_disktools.test_globals.TestCallBinary.testDaftParameters
 
-'''
+Todo:
+    * Add more TODOs
+
+.. _Google Python Style Guide:
+   http://google.github.io/styleguide/pyguide.html
+
+"""
+
 import os
 import random
 import sys

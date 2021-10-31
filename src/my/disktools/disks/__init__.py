@@ -413,7 +413,6 @@ def disk_namedtuple(node):
 
     Todo:
         * Add more TODOs.
-        *
 
     """
     if node in (None, '/', '') or \
@@ -429,35 +428,25 @@ def disk_namedtuple(node):
 class Disk:
     """Class instance that wraps around /dev/sda, /dev/mmcblk0, or whichever.
 
-    QQQ
-    QQQ
+    Note:
+        None.
 
     Args:
-        node (:obj:`str`): The /dev entry of the disk.
+        node (:obj:`str`): The path (/dev/etc.) of the disk that
+            we care about.
 
     Returns:
-        None
-
+        None.
+        
     Raises:
         ValueError: If node is invalid.
+    
+    Todo:
+        * Add more TODOs
+        * Add proper read- and write-locking.
 
     """
-
     def __init__(self, node):
-        """Initialize this Disk() instance.
-
-        Note:
-            None.
-
-        Args:
-            node (:obj:`str`): The path (/dev/etc.) of the disk that
-                we care about.
-
-        Returns:
-            None.
-
-        """
-        # TODO: QQQ add locking
         self._user_specified_node = node
         self._node = os.path.realpath(self._user_specified_node)
         if not is_this_a_disk(self._user_specified_node):

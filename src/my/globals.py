@@ -4,32 +4,7 @@ Created on Oct 16, 2021
 @author: Tom Blackshaw
 
 To run a unit test:-
-# python3 -m unittest test/test_disktools
-
-https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
-
-This module demonstrates documentation as specified by the `Google Python
-Style Guide`_. Docstrings may extend over multiple lines. Sections are created
-with a section header and a colon followed by a block of indented text.
-
-Example:
-    Examples can be given using either the ``Example`` or ``Examples``
-    sections. Sections support any reStructuredText formatting, including
-    literal blocks::
-
-        $ python example_google.py
-
-Section breaks are created by resuming unindented text. Section breaks
-are also implicitly created anytime a new section starts.
-
-Attributes:
-    module_level_variable1 (int): Module level variables may be documented in
-        either the ``Attributes`` section of the module docstring, or in an
-        inline docstring immediately following the variable.
-
-        Either form is acceptable, but the two should not be mixed. Choose
-        one convention to document module level variables and be consistent
-        with it.
+# python3 -m unittest test.test_disktools.test_globals
 
 Todo:
     * For module TODOs
@@ -43,6 +18,14 @@ Todo:
 import subprocess
 import random
 import string
+
+
+def generate_random_string(length):
+    """QQQ"""
+    x = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(length))
+    return x
+
+
 
 def call_binary(param_lst, input_str=None):
     """Retrieve the disk ID, disk size (bytes and sectors), and sector size.
@@ -71,7 +54,6 @@ q
     Raises:
         FileNotFoundError: Binary not found.
 
-
     Todo:
         * Add more TODOs
 
@@ -88,13 +70,4 @@ e.g. ['fdisk', '/dev/sda'].")
                         (None if res_pair[1] is None else res_pair[1].decode('UTF-8')))
     return to_be_returned
 
-
-
-
-
-
-
-def generate_random_string(length):
-    x = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(length))
-    return x
 
