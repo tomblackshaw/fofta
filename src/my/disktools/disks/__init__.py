@@ -336,6 +336,7 @@ def all_disk_paths():
 
 
 def namedtuples_for_all_disks():
+    """QQQ"""
     disks = []
     for devpath in all_disk_paths():
         disks.append(disk_namedtuple(devpath))
@@ -523,8 +524,7 @@ class Disk:
 
     @property
     def disk_id(self):
-        """str: the hexadecimal ID (from sfdisk's output) of the disk itself
-        """
+        """str: the hexadecimal ID (from sfdisk's output) of the disk itself"""
         return self._disk_id
 
     @disk_id.setter
@@ -544,8 +544,7 @@ class Disk:
 
     @property
     def disk_label(self):
-        """str: the /dev/disk/by-label/... (from sfdisk's output) of the disk
-        """
+        """str: the /dev/disk/by-label/... (from sfdisk's output) of the disk"""
         return self._disk_label
 
     @disk_label.setter
@@ -571,8 +570,7 @@ class Disk:
 
     @property
     def id(self):
-        """str: the ID (from sfdisk's output) of the disk itself
-        """
+        """str: the ID (from sfdisk's output) of the disk itself"""
         return self._id
 
     @id.setter
@@ -587,8 +585,7 @@ class Disk:
     def unit(self):
         """str: the human-readable name of the unit of measurement that
             fdisk, sfdisk, etc. will use when reading and writing the
-            settings for the disk partitions. Probably 'sector'.
-        """
+            settings for the disk partitions. Probably 'sector'."""
         return self._unit
 
     @unit.setter
@@ -601,8 +598,7 @@ class Disk:
 
     @property
     def device(self):
-        """str: the /dev path of the disk itself
-        """
+        """str: the /dev path of the disk itself"""
         return self._device
 
     @device.setter
@@ -616,8 +612,7 @@ class Disk:
     @property
     def partitions(self):
         """list[] of DiskPartition records: All the partitions
-            that belong to this disk.
-        """
+            that belong to this disk."""
         return self._partitions
 
     @partitions.setter
@@ -630,8 +625,7 @@ class Disk:
 
     @property
     def sector_size(self):
-        """int: the sector size that the disk uses. Probably 512.
-        """
+        """int: the sector size that the disk uses. Probably 512."""
         return self._sector_size
 
     @sector_size.setter
@@ -644,8 +638,7 @@ class Disk:
 
     @property
     def size_in_sectors(self):
-        """int: The maximum capacity of the disk, in sector.
-        """
+        """int: The maximum capacity of the disk, in sector."""
         return self._size_in_sectors
 
     @size_in_sectors.setter
@@ -658,22 +651,7 @@ class Disk:
 
     @property
     def overlapping(self):
-        """Tell you if this disk's partitions overlap
-
-    Args:
-        None.
-
-    Returns:
-        bool: If two or more of the disk's partitions overlap one
-            another, return True. Else, return False.
-
-    Raises:
-        None
-
-    Todo:
-        * Add more TODOs
-
-        """
+        """Tell you if this disk's partitions overlap."""
         from my.disktools.partitions import overlapping
         return overlapping(self.node)
 
