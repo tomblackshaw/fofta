@@ -69,9 +69,12 @@ class DiskPartition:
         AttributeError: You attempted to write a readonly attribute, read
             something that's unreadable, or do something equally silly).
         ValueError: If `param2` is equal to `param1`.
+        
+    Todo:
+        * Add more TODOs
+        * Add read- and write-locking
 
     """
-
     def __init__(self, node):
         self._user_specified_node = node
         self._node = os.path.realpath(self._user_specified_node)
@@ -81,7 +84,6 @@ class DiskPartition:
             raise ValueError("%s does not belong to any disk" % self._user_specified_node)
 
     def __repr__(self):
-        # TODO: QQQ add locking
         return f'DiskPartition(node="%s")' % self.node
 
     def __str__(self):
@@ -238,19 +240,6 @@ class DiskPartition:
     def partuuid(self):
         raise AttributeError("Not permitted")
 
-    # @property
-    # def node(self):
-    #     """:obj:`str`: node."""
-    #     return self._path
-    #
-    # @node.setter
-    # def node(self, value):
-    #     raise AttributeError("Not permitted")
-    #
-    # @node.deleter
-    # def node(self):
-    #     raise AttributeError("Not permitted")
-
     @property
     def uuid(self):
         """:obj:`str`: uuid."""
@@ -358,37 +347,46 @@ def overlapping(disk_path, hypothetically=None):
 
 
 def delete_all_partitions(partition_path):
-    """Class methods are similar to regular functions. QQQ
-
+    """Delete all partitions from specified disk.
+    
     Note:
-        Do not include the `self` parameter in the ``Args`` section.
-
+        None.
+        
     Args:
-        param1: The first parameter.
-        param2: The second parameter.
+        disk_path (:obj:`str`): The /dev entry of the disk in
+            question. This may be almost any /dev entry (including
+            softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
+            but I'll always deduce the real entry (probably /dev/sdX
+            or /dev/mmcblkN) and use that as my node path.
 
     Returns:
-        True if successful, False otherwise.
+        None.
 
+    Raises:
+        PartitionDeletionError: Failed to delete partition.
+        
     """
-
     realpartition_path = os.path.realpath(partition_path)
     os.system('''sfdisk -d {partition_path}| grep -vx "{partition_path}.*[0-9] : .*"| sfdisk -f {partition_path} 2>/dev/null >/dev/null'''.format(partition_path=realpartition_path))
     os.system("partprobe {partition_path}".format(partition_path=realpartition_path))
 
 
 def partition_exists(disk_path, partno):
-    """Class methods are similar to regular functions. QQQ
+    """Does this partn# exist on this disk?
 
     Note:
-        Do not include the `self` parameter in the ``Args`` section.
+        None.
 
     Args:
-        param1: The first parameter.
-        param2: The second parameter.
+        disk_path (:obj:`str`): The /dev entry of the disk in
+            question. This may be almost any /dev entry (including
+            softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
+            but I'll always deduce the real entry (probably /dev/sdX
+            or /dev/mmcblkN) and use that as my node path.
+        partno (int): The partition#.
 
     Returns:
-        True if successful, False otherwise.
+        True if yes, False if no.
 
     """
     disk_path = os.path.realpath(disk_path)
@@ -429,18 +427,17 @@ def get_partition_fstype(disk_path, partno):
 
 
 def get_disk_partition_table(disk_path):
+    """QQQ"""
     disk_path = os.path.realpath(disk_path)
     retcode, stdout_txt, stderr_txt = call_binary(param_lst=['sfdisk', '-d', disk_path], input_str=None)
     if retcode != 0:
         print(stderr_txt)
         raise PartitionAttributeReadFailureError("Unable to retrieve disk partitiontable of %s" % disk_path)
     return stdout_txt
-#    just_sfdisk_op = subprocess.run(['sfdisk', '-d', disk_path], stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
-#    sfdisk_op_text = just_sfdisk_op.stdout.decode('UTF-8')
-#    return sfdisk_op_text
 
 
 def get_disk_partition_table_line(disk_path, partno):
+    """QQQ"""
     sfdisk_op_text_lst = get_disk_partition_table(disk_path).split('\n')
     try:
         sfdisk_op_line_number = [i for i in range(len(sfdisk_op_text_lst)) \
@@ -453,10 +450,12 @@ def get_disk_partition_table_line(disk_path, partno):
 
 
 def get_disk_partition_field_value(disk_path, partno, fieldno):
+    """QQQ"""
     return get_disk_partition_table_line(disk_path, partno).split(',')[fieldno].split('=')[-1].strip()
 
 
 def set_disk_partition_field_value(disk_path, partno, fieldno, newval):
+    """QQQ"""
     oldcurr_line = get_disk_partition_table_line(disk_path, partno)
     oldval = get_disk_partition_field_value(disk_path, partno, fieldno)
     itemno = 0
@@ -476,11 +475,6 @@ disk_path=%s partno=%d fieldno=%d" % (disk_path, partno, fieldno))
     old_txt = get_disk_partition_table(disk_path)
     new_txt = old_txt.replace(oldcurr_line, newcurr_line)
     retcode, stdout_txt, stderr_txt = call_binary(param_lst=['sfdisk', '-f', disk_path], input_str=new_txt)
-#    print('oldval :', oldval)
-#    print('newval :', newval)
-#    print('stdout=', stdout_txt)
-#    print('stderr=', stderr_txt)
-#    print('retcode=', retcode)
     if retcode != 0:
         raise PartitionAttributeWriteFailureError( \
                "Failed to change field {fieldno} of partn#{partno} of {disk_path} from {oldval} to {newval}".format(
@@ -560,8 +554,6 @@ def add_partition_SUB(disk_path, partno, start, end, fstype, with_partno_Q=True,
         debug_str = ''
     else:
         debug_str = ' >/dev/null 2>/dev/null'
-    # if start is None and partno == 5:
-    #     raise AttributeError("Please specify the starting sector for partition %d of %s" % (partno, disk_path))
     if with_partno_Q:
         res = os.system('''echo "p\nn\n%s\n%s\n%s\n%s\nw" | fdisk %s %s''' % (
                 'e' if fstype == _FS_EXTENDED else 'l' if partno >= 5 else 'p',
@@ -659,8 +651,6 @@ def partition_paths(partition_record):
     Returns:
         True if successful, False otherwise.
     """
-#    if type(partition_record) is not DiskPartition:
-#        raise ValueError("Please supply a valid partition record")
     lst = []
     for i in (partition_record.node, partition_record.partuuid,
               partition_record.uuid, partition_record.label,
@@ -685,20 +675,28 @@ def partition_namedtuple(node):
 
 
 def delete_partition(disk_path, partno):
-    """Class methods are similar to regular functions. QQQ
+    """Delete the specified partition from the specified disk.
 
     Note:
-        Do not include the `self` parameter in the ``Args`` section.
+        None.
 
     Args:
-        param1: The first parameter.
-        param2: The second parameter.
+        disk_path (:obj:`str`): The /dev entry of the disk in
+            question. This may be almost any /dev entry (including
+            softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
+            but I'll always deduce the real entry (probably /dev/sdX
+            or /dev/mmcblkN) and use that as my node path.
+        partno (int, optional): The partition#. If it is unspecified, the
+            next one will be used. For example, if the last partition is #2,
+            then #3 will be the new partition's number.
 
     Returns:
-        True if successful, False otherwise.
+        None.
 
+    Raises:
+        PartitionDeletionError: Failed to delete partition.
+        
     """
-
     if partno >= 5 and partition_exists(disk_path, partno + 1):
         raise PartitionDeletionError(
             "Because partition #%d of %s exists, I cannot create #%d. \
