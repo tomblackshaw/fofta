@@ -7,7 +7,7 @@ Created on Oct 19, 2021
 
 Usage:-
     $ python3 -m unittest test.test_disktools.test_Disk_class
-    $ python3 -m unittest test.test_disktools.test_Disk_class.TestSettingDiskID
+    $ python3 -m unittest test.test_disktools.test_Disk_class.TestLogicalPartitions_TWO.testMake567AndTinkerWith2
 
 """
 import os
@@ -323,10 +323,15 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.assertTrue(partition_exists(disk_path=self.disk.node, partno=7))
 
     def testMake567AndTinkerWith2(self):
-        for i in range(5, 7):
-            self.assertFalse(partition_exists(disk_path=self.disk.node, partno=i))
-            self.disk.add_partition(i, size_in_MiB=i * 10)
-            self.assertTrue(partition_exists(disk_path=self.disk.node, partno=i))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=5))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=6))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=7))
+        self.disk.add_partition(5, size_in_MiB=500)
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=5))
+        self.disk.add_partition(6, size_in_MiB=600)
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=6))
+        self.disk.add_partition(7, size_in_MiB=700)
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=7))
         p2_partno = self.disk.partitions[1].partno
         p2_start = self.disk.partitions[1].start
         p2_end = self.disk.partitions[1].end
