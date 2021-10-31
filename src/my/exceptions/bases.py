@@ -106,6 +106,73 @@ class MyDisktoolsPartitionException(MyDisktoolsException):
         self.code = code
 
 
+class PartitionCreationException(MyDisktoolsPartitionException):
+    """Custom exceptions for errors relating to the creating of a partition.
+
+    Note:
+        Do not raise me. I'm not specific enough.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):
+        self.msg = msg
+        self.code = code
+
+
+class PartitionModificationException(MyDisktoolsPartitionException):
+    """Custom exceptions for errors relating to the modifying of a partition.
+
+    Note:
+        Do not raise me. I'm not specific enough.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):
+        self.msg = msg
+        self.code = code
+
+
+class PartitionDeletionException(MyDisktoolsException):
+    """Custom exceptions for errors relating to the deleting of a partition.
+
+    The function delete_partition() raises this exception if the function
+    fails to delete the specified partition.
+
+    Note:
+        This does not apply to bad parameters. ValueError() is raised
+        if the parameters are invalid or unworkable.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):
+        self.msg = msg
+        self.code = code
+
+
 class MyDisktoolsOtherException(MyDisktoolsException):
     """Miscellaneous my.disktools exceptions are subclasses of me.
 

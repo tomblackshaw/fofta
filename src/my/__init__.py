@@ -1,6 +1,18 @@
-"""Example Google style docstrings.
-Created on Oct 17, 2021
-@author: Rob Ruana. Revision 83bf1963
+"""my
+
+My library
+
+Created on Oct 16, 2021
+@author: Tom Blackshaw
+
+To run a unit test:-
+# python3 -m unittest test/test_disktools
+
+https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
+
+This module demonstrates documentation as specified by the `Google Python
+Style Guide`_. Docstrings may extend over multiple lines. Sections are created
+with a section header and a colon followed by a block of indented text.
 
 https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
 
@@ -212,7 +224,7 @@ class ExampleClass(object):
         value
 
     def example_method(self, param1, param2):
-        """Class methods are similar to regular functions.
+        """Class methods are similar to regular functions. QQQ
 
         Note:
             Do not include the `self` parameter in the ``Args`` section.

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """main.py
 
 Created on Oct 16, 2021
@@ -10,7 +11,7 @@ Example:
 
         $ python3 -m unittest discover
     ...or...
-        $ test.test_partitiontools.test_Disk_class.TestCreateDeliberatelyOverlappingPartitions
+        $ python3 -m unittest test.test_disktools.test_Disk_class.TestCreateDeliberatelyOverlappingPartitions
 
 Todo:
     * QQQ Finish me QQQ

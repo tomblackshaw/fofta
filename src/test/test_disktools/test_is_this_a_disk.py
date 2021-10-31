@@ -1,15 +1,18 @@
-'''
+# -*- coding: utf-8 -*-
+"""test_get_disk_record test module
+
 Created on Oct 19, 2021
 
 @author: Tom Blackshaw
-'''
-import os
-import os
-import sys
-import sys
-import unittest
-import unittest
 
+Usage:-
+    $ python3 -m unittest test.test_disktools.test_is_this_a_disk
+    $ python3 -m unittest test.test_disktools.test_is_this_a_disk.TestIsThiSADisk_One
+
+"""
+import os
+import sys
+import unittest
 from my.disktools.disks import is_this_a_disk
 from test.test_disktools import SAMPLE_LIST_OF_BOGUS_PARAMS, \
     SAMPLE_LIST_OF_DRIVES_STUBS, SAMPLE_LIST_OF_DODGY_STUBS
