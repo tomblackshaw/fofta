@@ -402,7 +402,7 @@ def enhance_the_sfdisk_output(node, json_rec):
                                                        disk_searchby)
         for partition_rec in json_rec['partitiontable']['partitions']:
             for partition_searchby in ('id', 'label', 'partuuid', 'path', 'uuid'):
-                partition_rec[partition_searchby] = None  # devdiskbyxxxx_path(node, partition_searchby)
+                partition_rec[partition_searchby] = devdiskbyxxxx_path(partition_rec['node'], partition_searchby)
     json_rec['partitiontable']['node'] = node
     return json_rec
 
