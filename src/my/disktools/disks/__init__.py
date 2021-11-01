@@ -41,7 +41,7 @@ the_threadsafeDisk_lock = threading.Lock()
 
 
 def threadsafeDisk(node):
-    """Return a threadsafe ingleton (single/common instance) for one specific disk.
+    """Return a threadsafe singleton (single/common instance) for one specific disk.
     
     It is true that d=Disk('/dev/sda') generates one class instance that wraps around
     one specific disk. That's great. Unfortunately, e=Disk('/dev/sda') does the same
