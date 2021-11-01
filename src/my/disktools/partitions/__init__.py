@@ -783,7 +783,7 @@ def partition_namedtuple(node):
     from my.disktools.disks import all_disk_paths, enhance_the_sfdisk_output, sfdisk_output
     for this_disk_path in all_disk_paths():
         json_rec = sfdisk_output(this_disk_path)
-        enhance_the_sfdisk_output(this_disk_path, json_rec)  # Changes are saved to json_rec
+        _ = enhance_the_sfdisk_output(this_disk_path, json_rec)  # Changes are saved to json_rec
         rec = json.loads(json.dumps(json_rec), object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
         for p in rec.partitiontable.partitions:
             if node in partition_paths(p):
