@@ -254,10 +254,13 @@ i
 {new_diskid}
 r
 w
-'''.format(new_diskid=new_diskid))
+'''.format(new_diskid=new_diskid)) 
     os.system('''sync;sync;sync;partprobe {node}; sync;sync;sync'''.format(node=node))
     resultant_id = diskid_sizeinbytes_sizeinsectors_and_sectorsize(node)[0]
     if resultant_id != new_diskid:
+        print(retcode)
+        print(stdout_txt)
+        print(stderr_txt)
         raise DiskIDSettingFailureError("Failed to set disk ID of {node} to {id}".format(
             node=node, id=new_diskid))
 

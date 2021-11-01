@@ -11,7 +11,6 @@ Usage:-
 
 """
 import os
-import subprocess
 import sys
 from test import MY_TESTDISK_PATH
 import unittest
@@ -106,22 +105,6 @@ class TestCreateDeliberatelyOverlappingPartitions(unittest.TestCase):
                                     start=None,
                                     end=self.disk.partitions[-1].start)
         self.assertEqual(len(self.disk.partitions), 1)
-        '''
-        from my.disktools.disks import *
-        from my.disktools.partitions import overlapping
-        d = Disk('/dev/sda')
-        d.delete_all_partitions()
-        d.add_partition(partno=1, start=50000, end=99999)
-        overlapping(d.node, (2, 50000, 99999, '83'))
-        d.add_partition(partno=2, start=50000, end=99999)
-        d.add_partition(partno=2,start=d.partitions[-1].start,end=d.partitions[-1].end)
-        add_partition(d.node, partno=2,start=d.partitions[-1].start,end=d.partitions[-1].end)
-        disk_path = d.node
-        partno = 2
-        start=d.partitions[-1].start
-        end=d.partitions[-1].end
-        size_in_MiB=None
-        '''
         with self.assertRaises(PartitionsOverlapError):
             self.disk.add_partition(partno=2,
                                     start=self.disk.partitions[-1].start,
@@ -239,6 +222,7 @@ class TestSettingDiskID(unittest.TestCase):
             self.assertNotEqual(self.disk.disk_id, new_diskid)
             self.disk.update()
             self.assertEqual(self.disk.disk_id, new_diskid)
+        del retcode, stdout_txt, stderr_txt
         for new_id in (None, '', '0x123456789', '0x', '0x1234567', '1234567890',
                        '', 'ABCDEFGHIJ', '0xABCDEFGH', '0xabdefgh', 0x1234abcd):
             with self.assertRaises(DiskIDSettingFailureError):
@@ -362,20 +346,20 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.assertTrue(partition_exists(self.disk.node, 5))
         self.assertFalse(partition_exists(self.disk.node, 6))
         
-    def testSomeOtherBS(self):
-        '''
-        self.disk.delete_partition(1)
-        assert(partition_exists(self.disk.node, 1) == False)
-        self.disk.add_partition(1)
-        assert(partition_exists(self.i, 1) == True)
-        old_size_of_p12 = self.disk.partitions[12].size
-        self.disk.delete_partition(13)
-        new_size_of_p12 = self.disk.partitions[12].size
-        
-        with open('/proc/partitions', 'r') as f:
-            txt = f.read()
-        '''
-        pass
+    # def testSomeOtherBS(self):
+    #     '''
+    #     self.disk.delete_partition(1)
+    #     assert(partition_exists(self.disk.node, 1) == False)
+    #     self.disk.add_partition(1)
+    #     assert(partition_exists(self.i, 1) == True)
+    #     old_size_of_p12 = self.disk.partitions[12].size
+    #     self.disk.delete_partition(13)
+    #     new_size_of_p12 = self.disk.partitions[12].size
+    #
+    #     with open('/proc/partitions', 'r') as f:
+    #         txt = f.read()
+    #     '''
+    #     pass
         
     
 

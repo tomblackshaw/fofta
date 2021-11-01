@@ -417,7 +417,7 @@ def get_partition_fstype(disk_path, partno):
         partno (int): The partition#.
 
     Returns:
-        :obj:`str` if found, None otherwise.
+        :obj:`str`: What was found.
 
     """
     from my.disktools.disks import is_this_a_disk
@@ -427,7 +427,25 @@ def get_partition_fstype(disk_path, partno):
 
 
 def get_disk_partition_table(disk_path):
-    """QQQ"""
+    """Get sfdisk's (std)output for the specified disk_path string.
+
+    Note:
+        None.
+
+    Args:
+        disk_path (:obj:`str`): The /dev entry of the disk in
+            question. This may be almost any /dev entry (including
+            softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
+            but I'll always deduce the real entry (probably /dev/sdX
+            or /dev/mmcblkN) and use that as my node path.
+
+    Returns:
+        :obj:`str`: The partition table.
+    
+    Raises:
+        PartitionAttributeReadFailureError: Failed to read the partition table.
+
+    """
     disk_path = os.path.realpath(disk_path)
     retcode, stdout_txt, stderr_txt = call_binary(param_lst=['sfdisk', '-d', disk_path], input_str=None)
     if retcode != 0:
@@ -437,7 +455,23 @@ def get_disk_partition_table(disk_path):
 
 
 def get_disk_partition_table_line(disk_path, partno):
-    """QQQ"""
+    """Get sfdisk's (std)output for a partition on the specified disk.
+
+    Args:
+        disk_path (:obj:`str`): The /dev entry of the disk in
+            question. This may be almost any /dev entry (including
+            softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
+            but I'll always deduce the real entry (probably /dev/sdX
+            or /dev/mmcblkN) and use that as my node path.
+        partno (int): The partition#.
+
+    Returns:
+        :obj:`str`: What was found.
+    
+    Raises:
+        PartitionAttributeReadFailureError: Failed to read the line from the partition table.
+
+    """    
     sfdisk_op_text_lst = get_disk_partition_table(disk_path).split('\n')
     try:
         sfdisk_op_line_number = [i for i in range(len(sfdisk_op_text_lst)) \
@@ -450,12 +484,47 @@ def get_disk_partition_table_line(disk_path, partno):
 
 
 def get_disk_partition_field_value(disk_path, partno, fieldno):
-    """QQQ"""
+    """Get sfdisk's (std)output for a field of a partition from a disk.
+
+    Args:
+        disk_path (:obj:`str`): The /dev entry of the disk in
+            question. This may be almost any /dev entry (including
+            softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
+            but I'll always deduce the real entry (probably /dev/sdX
+            or /dev/mmcblkN) and use that as my node path.
+        partno (int): The partition#.
+        fieldno (int): The field#. Probably 0, 1, or 2 (start, size, type).
+
+    Returns:
+        :obj:`str`: What was found.
+    
+    Raises:
+        None.
+
+    """    
     return get_disk_partition_table_line(disk_path, partno).split(',')[fieldno].split('=')[-1].strip()
 
 
 def set_disk_partition_field_value(disk_path, partno, fieldno, newval):
-    """QQQ"""
+    """Set a field of a partition of a disk, using sfdisk.
+
+    Args:
+        disk_path (:obj:`str`): The /dev entry of the disk in
+            question. This may be almost any /dev entry (including
+            softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
+            but I'll always deduce the real entry (probably /dev/sdX
+            or /dev/mmcblkN) and use that as my node path.
+        partno (int): The partition#.
+        fieldno (int): The field#. Probably 0, 1, or 2 (start, size, type).
+        newval (str): The new value.
+
+    Returns:
+        None.
+    
+    Raises:
+        None.
+
+    """    
     oldcurr_line = get_disk_partition_table_line(disk_path, partno)
     oldval = get_disk_partition_field_value(disk_path, partno, fieldno)
     itemno = 0
@@ -476,6 +545,8 @@ disk_path=%s partno=%d fieldno=%d" % (disk_path, partno, fieldno))
     new_txt = old_txt.replace(oldcurr_line, newcurr_line)
     retcode, stdout_txt, stderr_txt = call_binary(param_lst=['sfdisk', '-f', disk_path], input_str=new_txt)
     if retcode != 0:
+        print(stdout_txt)
+        print(stderr_txt)
         raise PartitionAttributeWriteFailureError( \
                "Failed to change field {fieldno} of partn#{partno} of {disk_path} from {oldval} to {newval}".format(
                    fieldno=fieldno, partno=partno, disk_path=disk_path, oldval=oldval, newval=newval))
@@ -498,13 +569,15 @@ def set_partition_fstype(disk_path, partno, fstype):
             of the filesystem.
 
     Returns:
-        :obj:`str` if found, None otherwise.
+        None.
 
     """
     try:
         set_disk_partition_field_value(disk_path, partno, 2, fstype)
     except PartitionTableReorderingError:
-        raise PartitionAttributeWriteFailureError("Unable to change fstype of partn#{partno} of {disk_path}".format(partno=partno, disk_path=disk_path))
+        raise PartitionAttributeWriteFailureError(\
+                      "Unable to change fstype of partn#{partno} of {disk_path}".format(
+                                                    partno=partno, disk_path=disk_path))
 
 
 def add_partition_SUB(disk_path, partno, start, end, fstype, with_partno_Q=True, size_in_MiB=None, debug=False):
@@ -638,29 +711,73 @@ def add_partition(disk_path, partno, start, end=None, fstype=None, debug=False, 
     return 0  # Throw away res if the partition was successfully created
 
 
-def partition_paths(partition_record):
-    """Class methods are similar to regular functions. QQQ
+def partition_paths(partition):
+    """Get a list of all potential nodenames (/dev/.../etc.) for this partition.
+    
+    A subroutine calls me, supplies a Partition() class instance, and asks me
+    to provide a list of all /dev links+nodes associated with this partition.
+    
+    Example:
+        Ask partition_paths() for a list of paths associated with /dev/sda1::
+        
+            $ partition = DiskPartition('/dev/sda')
+            $ partition_paths(partition)
+            ['/dev/sda1', '/dev/disk/by-partuuid/1234abcd-01', 
+            '/dev/disk/by-uuid/2bcf1a74-0d10-4edd-ac70-30892798ecfc', 
+            '/dev/disk/by-label/MY_LAB84', 
+            '/dev/disk/by-path/platform-xhci-hcd.0.auto-usb-0:1:1.0-scsi-0:0:0:0-part1']
 
     Note:
-        Do not include the `self` parameter in the ``Args`` section.
+        None.
 
     Args:
-        param1: The first parameter.
-        param2: The second parameter.
+        partition (DiskPartition): The disk partition in question.
 
     Returns:
-        True if successful, False otherwise.
+        List of strings: All applicable /dev paths.
+        
+    Raises:
+        None.
+
     """
     lst = []
-    for i in (partition_record.node, partition_record.partuuid,
-              partition_record.uuid, partition_record.label,
-              partition_record.path):
+    for i in (partition.node, partition.partuuid,
+              partition.uuid, partition.label,
+              partition.path):
         if i not in (None, ''):
             lst.append(i)
     return lst
 
 
 def partition_namedtuple(node):
+    """Use sfdisk to get info; enhance it w/ more info; return it as a namedtiple.
+    
+    The specified node, a /dev string, will be sent to sfdisk, fdisk, etc. and
+    so on. The result is stored in a JSON quasi-dictionary. Then, it is turned
+    into a namedtuple and returned by me.
+    
+    Example:
+        Ask partition_paths() for an enhanced amedtuple associated with /dev/sda1::
+        
+            $ node = '/dev/sda1'
+            $ t = partition_namedtuple(node)
+            $ t
+            X(node='/dev/sda1', start=2048, size=125040640, type='83',
+                id=None, label=None, partuuid=None, path=None, uuid=None)
+
+    Note:
+        None.
+
+    Args:
+        node (str): The path of the partition in question.
+
+    Returns:
+        namedtuple: A sfdisk/fdisk-derived namedtuple of the partition in question.
+        
+    Raises:
+        ValueError: Path doesn't exist.
+
+    """
     if not os.path.exists(node):
         raise ValueError("Partition devpath %s does not exist" % node)
     from my.disktools.disks import all_disk_paths, enhance_the_sfdisk_output, sfdisk_output

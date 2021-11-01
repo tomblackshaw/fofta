@@ -42,9 +42,9 @@ class TestCallBinary(unittest.TestCase):
 
     def testDaftParameters(self):
         _ = call_binary(['ls'])
-        (retcode, stdin_str, stdout_str) = call_binary(['ls'])
+        (retcode, stdin_str, stdout_str) = call_binary(['ls'])  # @UnusedVariable
         with self.assertRaises(ValueError):
-            here, there = call_binary(['ls'])  #pylint: disable=unbalanced-tuple-unpacking
+            here, there = call_binary(['ls'])  # @UnusedVariable  #pylint: disable=unbalanced-tuple-unpacking
         with self.assertRaises(FileNotFoundError):
             _ = call_binary(['lsd123'])
         _ = call_binary(['ls'], None)

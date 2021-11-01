@@ -218,12 +218,12 @@ class PartitionDeletionError(PartitionDeletionException):
 class PartitionModificationError(PartitionModificationException):
     """Raised if an attempt fails to modify a partition.
 
-    The function QQQ TODO QQQ() raises this exception if the function
-    fails to delete the specified partition.
+    This exception is raised if a function fails to delete the
+    specified partition.
 
     Note:
-        This does not apply to bad parameters. ValueError() is raised
-        if the parameters are invalid or unworkable.
+        This does not apply to bad parameters. ValueError() is
+        raised if the parameters are invalid or unworkable.
 
     Args:
         msg (str): Human readable string describing the exception.
@@ -254,7 +254,7 @@ class PartitionAttributeReadFailureError(PartitionModificationError):
 
     Attributes:
         msg (str): Human readable string describing the exception.
-        code (int): Exception error code. QQQ
+        code (int): Exception error code.
 
     """
 
@@ -277,7 +277,7 @@ class PartitionAttributeWriteFailureError(PartitionModificationError):
 
     Attributes:
         msg (str): Human readable string describing the exception.
-        code (int): Exception error code. QQQ
+        code (int): Exception error code.
 
     """
 
@@ -300,7 +300,7 @@ class PartitionTableReorderingError(PartitionModificationError):
 
     Attributes:
         msg (str): Human readable string describing the exception.
-        code (int): Exception error code. QQQ
+        code (int): Exception error code.
 
     """
 
@@ -321,7 +321,7 @@ class DiskIDSettingFailureError(MyDisktoolsOtherException):
 
     Attributes:
         msg (str): Human readable string describing the exception.
-        code (int): Exception error code. QQQ
+        code (int): Exception error code.
 
     """
 

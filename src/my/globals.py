@@ -21,7 +21,7 @@ import string
 
 
 def generate_random_string(length):
-    """QQQ"""
+    """Generate a N-chars-long random alphanumeric string"""
     x = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(length))
     return x
 
