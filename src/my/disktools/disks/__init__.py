@@ -44,7 +44,7 @@ _disks_dct = {}
 the_threadsafeDisk_lock = threading.Lock()
 
 
-def threadsafeDisk(node):
+def threadsafeDisk(disk_path):
     """Return a threadsafe singleton (single/common instance) for one specific disk.
 
     It is true that d=Disk('/dev/sda') generates one class instance that wraps around
@@ -60,7 +60,7 @@ def threadsafeDisk(node):
         '/dev/sda'
 
     Args:
-        device_path (:obj:`str`): Full path to the disk in question. The
+        disk_path (:obj:`str`): Full path to the disk in question. The
             path may be a simple /dev entry, e.g. /dev/sda or /dev/sda1,
             or it may be /dev/disk/by-uuid/..... etc. The end result is
             the same. If it's a disk that holds partitions), then the
@@ -79,15 +79,15 @@ def threadsafeDisk(node):
     global _disks_dct
     try:
         the_threadsafeDisk_lock.acquire()
-        if node not in _disks_dct:
-            _disks_dct[node] = Disk(node)
-        retval = _disks_dct[node]
+        if disk_path not in _disks_dct:
+            _disks_dct[disk_path] = Disk(disk_path)
+        retval = _disks_dct[disk_path]
     finally:
         the_threadsafeDisk_lock.release()
     return retval
 
 
-def is_this_a_disk(device_path, insist_on_this_existence_state=None):
+def is_this_a_disk(node, insist_on_this_existence_state=None):
     """Figure out if the supplied path is a disk (True) or a partition (False).
 
     Examine the supplied path. If it doesn't exist or if we can't figure out
@@ -95,7 +95,7 @@ def is_this_a_disk(device_path, insist_on_this_existence_state=None):
     return True if it's a disk or False if it's a partition.
 
     Args:
-        device_path (:obj:`str`): Full path to the disk in question. The
+        node (:obj:`str`): Full path to the disk in question. The
             path may be a simple /dev entry, e.g. /dev/sda or /dev/sda1,
             or it may be /dev/disk/by-uuid/..... etc. The end result is
             the same. If it's a disk that holds partitions), then the
@@ -109,7 +109,7 @@ def is_this_a_disk(device_path, insist_on_this_existence_state=None):
         bool: True if a disk, False if a partition.
 
     Raises:
-        ValueError: If the device doesn't exist, or is a softlink to a
+        ValueError: If `node` doesn't exist, or is a softlink to a
             nonexistent file, or is a directory, or has an unfamiliar
             name structure.
 
@@ -117,16 +117,16 @@ def is_this_a_disk(device_path, insist_on_this_existence_state=None):
     if insist_on_this_existence_state is not None:
         exists = insist_on_this_existence_state
     else:
-        exists = os.path.exists(device_path)
-    if device_path in (None, "/") or not exists:
-        raise ValueError("%s not found" % str(device_path))
-    linked_to = os.path.realpath(device_path)
+        exists = os.path.exists(node)
+    if node in (None, "/") or not exists:
+        raise ValueError("%s not found" % str(node))
+    linked_to = os.path.realpath(node)
     search_for_this_stub = os.path.basename(linked_to)
-    if device_path.count("/") > 3 and linked_to.count("/") <= 3:
+    if node.count("/") > 3 and linked_to.count("/") <= 3:
         return is_this_a_disk(
             linked_to, insist_on_this_existence_state=insist_on_this_existence_state
         )
-    elif deduce_partno(device_path) in (None, "") and search_for_this_stub.startswith(
+    elif deduce_partno(node) in (None, "") and search_for_this_stub.startswith(
         "mmc"
     ):
         return True
@@ -136,16 +136,16 @@ def is_this_a_disk(device_path, insist_on_this_existence_state=None):
         else:
             return True
     elif len(search_for_this_stub) >= 2 and search_for_this_stub[1] == "d":
-        if deduce_partno(device_path) not in (None, ""):
+        if deduce_partno(node) not in (None, ""):
             return False
         else:
             return True
-    elif os.path.isdir(device_path):
+    elif os.path.isdir(node):
         raise ValueError("%s is a directory, not a device")
-    elif "zram" in os.path.basename(device_path):
+    elif "zram" in os.path.basename(node):
         return False
     else:
-        raise ValueError("I do not know if %s is a disk or not" % device_path)
+        raise ValueError("I do not know if %s is a disk or not" % node)
 
 
 def fix_order_of_disk_partitiontable_entries(disk_path):
@@ -163,11 +163,11 @@ def fix_order_of_disk_partitiontable_entries(disk_path):
     Returns:
         (int, str, None|str):
             int: The code returned by sfdisk. 0=success; nonzero=error.
-            str: Stdout text.
-            None|str: Purpose unknown.
+            str: The stdout text.
+            None|str: The stderr text.
 
     Raises:
-        ValueError: Disk not found.
+        ValueError: `disk_path` not found.
 
     Todo:
         * Add more TODOs
@@ -217,12 +217,14 @@ def diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
             )
 
     Raises:
-        None
+        ValueError: If `disk_path` does not exist.
 
     Todo:
         * Add more TODOs
 
     """
+    if not os.path.exists(disk_path):
+        raise ValueError("%s not found" % disk_path)
     retcode, stdout_txt, stderr_txt = call_binary(
         param_lst=["sfdisk", "-l", disk_path], input_str=None
     )
@@ -251,14 +253,14 @@ def diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
     )
 
 
-def set_disk_id(node, new_diskid):
+def set_disk_id(disk_path, new_diskid):
     """Set the serial number of the specified disk.
 
-    If you run fdisk {node}, you'll see a field that says, "Disk ID: 0x....."
+    If you run fdisk {disk_path}, you'll see a field that says, "Disk ID: 0x....."
     or similar. That's the disk's serial number. Using fdisk, I can change it
 
     Args:
-        node (:obj:`str`): The path (e.g. /dev/sda) of the disk's node.
+        disk_path (:obj:`str`): The path (e.g. /dev/sda) of the disk's disk_path.
         new_diskid (:obj:`str`): A ten-character string, composed of the
             prefix '0x' and then eight hexadecimal characters, e.g.
             "0x1234ABCD".
@@ -274,7 +276,7 @@ def set_disk_id(node, new_diskid):
 
     """
     retcode, stdout_txt, stderr_txt = call_binary(
-        ["fdisk", node],
+        ["fdisk", disk_path],
         """x
 i
 {new_diskid}
@@ -284,18 +286,18 @@ w
             new_diskid=new_diskid
         ),
     )
-    os.system("""sync;sync;sync;partprobe {node}; sync;sync;sync""".format(node=node))
-    resultant_id = diskid_sizeinbytes_sizeinsectors_and_sectorsize(node)[0]
+    os.system("""sync;sync;sync;partprobe {disk_path}; sync;sync;sync""".format(disk_path=disk_path))
+    resultant_id = diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)[0]
     if resultant_id != new_diskid:
         print(retcode)
         print(stdout_txt)
         print(stderr_txt)
         raise DiskIDSettingFailureError(
-            "Failed to set disk ID of {node} to {id}".format(node=node, id=new_diskid)
+            "Failed to set disk ID of {disk_path} to {id}".format(disk_path=disk_path, id=new_diskid)
         )
 
 
-def sfdisk_output(node):
+def sfdisk_output(disk_path):
     """Call sfdisk, collect information in JSON format, and return it.
 
     This subroutine calls sfisk and asks for a JSON-formatted output of
@@ -327,10 +329,10 @@ def sfdisk_output(node):
 
     """
     retcode, stdout_txt, stderr_txt = call_binary(
-        param_lst=["sfdisk", "-J", node], input_str=None
+        param_lst=["sfdisk", "-J", disk_path], input_str=None
     )
     if retcode != 0:
-        print("sfdisk_output({node}) ==>".format(node=node))
+        print("sfdisk_output({disk_path}) ==>".format(disk_path=disk_path))
         print(stderr_txt)
     return json.loads(stdout_txt)
 
@@ -396,7 +398,7 @@ def namedtuples_for_all_disks():
     return disks
 
 
-def enhance_the_sfdisk_output(node, json_rec):
+def enhance_the_sfdisk_output(disk_path, json_rec):
     """Add sector size, disk size, etc. to the supplied JSON record.
 
     Using fdisk, we interrogate the specified disk, obtain additional
@@ -406,7 +408,7 @@ def enhance_the_sfdisk_output(node, json_rec):
     info to the JSON record.
 
     Args:
-        node (:obj:`str`): The /dev entry (e.g. /dev/sda) of the disk.
+        disk_path (:obj:`str`): The /dev entry (e.g. /dev/sda) of the disk.
         json_rec (json record): The existing JSON-formatted record that
             sfdisk returned when asked about node. THIS IS MODIFIED
             BY ME. The new data is added to json_rec, which will retain
@@ -424,30 +426,30 @@ def enhance_the_sfdisk_output(node, json_rec):
     """
     (
         disk_id,
-        node_size_in_bytes,
-        node_size_in_sectors,
+        disk_size_in_bytes,
+        disk_size_in_sectors,
         sector_size,
-    ) = diskid_sizeinbytes_sizeinsectors_and_sectorsize(node)
+    ) = diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)
     json_rec["partitiontable"]["sector_size"] = sector_size
-    json_rec["partitiontable"]["size_in_bytes"] = node_size_in_bytes
-    json_rec["partitiontable"]["size_in_sectors"] = node_size_in_sectors
+    json_rec["partitiontable"]["size_in_bytes"] = disk_size_in_bytes
+    json_rec["partitiontable"]["size_in_sectors"] = disk_size_in_sectors
     json_rec["partitiontable"]["disk_label"] = json_rec["partitiontable"]["label"]
     del json_rec["partitiontable"]["label"]
     json_rec["partitiontable"]["disk_id"] = disk_id
     for disk_searchby in ("id", "label", "partuuid", "path", "uuid"):
         json_rec["partitiontable"][disk_searchby] = devdiskbyxxxx_path(
-            node, disk_searchby
+            disk_path, disk_searchby
         )
         for partition_rec in json_rec["partitiontable"]["partitions"]:
             for partition_searchby in ("id", "label", "partuuid", "path", "uuid"):
                 partition_rec[partition_searchby] = devdiskbyxxxx_path(
                     partition_rec["node"], partition_searchby
                 )
-    json_rec["partitiontable"]["node"] = node
+    json_rec["partitiontable"]["node"] = disk_path
     return json_rec
 
 
-def disk_namedtuple(node):
+def disk_namedtuple(disk_path):
     """Get a namedtuple of info from sfdisk and fdisk, re: the disk specified.
 
     The binary 'sfdisk' can generate a JSON record containing information about
@@ -457,7 +459,7 @@ def disk_namedtuple(node):
     becomes rec.partitiontable and so on.
 
     Args:
-        node (:obj:`str`): The /dev entry (e.g. /dev/sda) of the node.
+        disk_path (:obj:`str`): The /dev entry (e.g. /dev/sda) of the node.
 
     Returns:
         namedtuple(
@@ -474,11 +476,11 @@ def disk_namedtuple(node):
         * Add more TODOs.
 
     """
-    if node in (None, "/", "") or not os.path.exists(node) or os.path.isdir(node):
-        raise ValueError("Cannot get disk record -- %s not found" % str(node))
-    json_rec = sfdisk_output(node)
+    if disk_path in (None, "/", "") or not os.path.exists(disk_path) or os.path.isdir(disk_path):
+        raise ValueError("Cannot get disk record -- %s not found" % str(disk_path))
+    json_rec = sfdisk_output(disk_path)
     # Changes are saved to json_rec
-    _ = enhance_the_sfdisk_output(node, json_rec)
+    _ = enhance_the_sfdisk_output(disk_path, json_rec)
     res = json.loads(
         json.dumps(json_rec),
         object_hook=lambda d: namedtuple("X", d.keys())(*d.values()),
@@ -557,9 +559,7 @@ class Disk:
             None
 
         """
-        #        print("Initializing Disk(%s)" % self.__user_specified_node)
         from my.disktools.partitions import DiskPartition
-
         if partprobe:
             self.partprobe()
         self.__cache = disk_namedtuple(self.node)
