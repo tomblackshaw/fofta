@@ -5,7 +5,7 @@ Created on Oct 16, 2021
 @author: Tom Blackshaw
 
 This module contains subroutines for viewing and modifying both partitions
-and disks. They are here beacuse they do not fit neatly into either
+and disks. They are here because they do not fit neatly into either
 category.
 
 Todo:
@@ -28,7 +28,6 @@ def devdiskbyxxxx_path(device_path, searchby):
     links. I search the specified subdirectory -- /dev/disk/by-{searchby} --
     and look for any softlinks to the specified node path. If I find it, I
     return it. If I can't find it, I return None.
-
 
     Args:
         device_path (:obj:`str`): The /dev/... entry, e.g. /dev/sdx1

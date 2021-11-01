@@ -6,7 +6,6 @@ Functions and classes that operate on disks (not partitions).
 Created on Oct 16, 2021
 @author: Tom Blackshaw
 
-
 This module contains subroutines for viewing and modifying disks (but
 not partitions themselves). In particular, it contains the Disk class,
 which is used to control individual disks. The device's path is sent
@@ -842,26 +841,8 @@ class Disk:
             self.update()
 
     def delete_all_partitions(self):
+        """Delete all partitions that I, a disk, contain."""
         from my.disktools.partitions import delete_all_partitions
-
-        """Delete all partitions that I, a disk, contain.
-
-        Note:
-            None.
-
-        Args:
-            None.
-
-        Returns:
-            None.
-
-        Raises:
-            Unknown.
-
-        Todo:
-            * Add a list of raised exceptions.
-
-        """
         delete_all_partitions(self.node)  # Also runs partprobe.
         self.update(partprobe=False)  # No need to run partprobe again.
 
@@ -898,12 +879,6 @@ class Disk:
 
     def dump(self):
         """Derive information about me and my partitions.
-
-        Note:
-            None.
-
-        Args:
-            None.
 
         Returns:
             :obj:`str`: Human-readable info dump.

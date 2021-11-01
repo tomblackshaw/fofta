@@ -395,7 +395,7 @@ def delete_all_partitions(partition_path):
         None.
 
     Raises:
-        PartitionDeletionError: Failed to delete partition.
+        PartitionDeletionError: Failed to delete partition `disk_path`.
 
     """
     realpartition_path = os.path.realpath(partition_path)
@@ -408,7 +408,7 @@ def delete_all_partitions(partition_path):
 
 
 def partition_exists(disk_path, partno):
-    """Does this partn# exist on this disk?
+    """Does this partno# exist on this disk?
 
     Note:
         None.
@@ -422,7 +422,7 @@ def partition_exists(disk_path, partno):
         partno (int): The partition#.
 
     Returns:
-        True if yes, False if no.
+        True if `disk_path` exists, False if it doesn't.
 
     """
     disk_path = os.path.realpath(disk_path)
@@ -442,7 +442,7 @@ fullpartitiondev=$(sfdisk -d $disk_path | grep -x "$disk_path.*$partno :.*" | he
 
 
 def get_partition_fstype(disk_path, partno):
-    """Get partition type -- '83', '5', ...? -- of partn# of the disk.
+    """Get partition type -- '83', '5', ...? -- of partno# of the disk.
 
     Note:
         None.
@@ -617,7 +617,7 @@ disk_path=%s partno=%d fieldno=%d"
         print(stdout_txt)
         print(stderr_txt)
         raise PartitionAttributeWriteFailureError(
-            "Failed to change field {fieldno} of partn#{partno} of {disk_path} from {oldval} to {newval}".format(
+            "Failed to change field {fieldno} of partno#{partno} of {disk_path} from {oldval} to {newval}".format(
                 fieldno=fieldno,
                 partno=partno,
                 disk_path=disk_path,
@@ -628,7 +628,7 @@ disk_path=%s partno=%d fieldno=%d"
 
 
 def set_partition_fstype(disk_path, partno, fstype):
-    """Set partition type -- '83', '5', ...? -- of partn# of the disk.
+    """Set partition type -- '83', '5', ...? -- of partno# of the disk.
 
     Note:
         None.
@@ -651,7 +651,7 @@ def set_partition_fstype(disk_path, partno, fstype):
         set_disk_partition_field_value(disk_path, partno, 2, fstype)
     except PartitionTableReorderingError:
         raise PartitionAttributeWriteFailureError(
-            "Unable to change fstype of partn#{partno} of {disk_path}".format(
+            "Unable to change fstype of partno#{partno} of {disk_path}".format(
                 partno=partno, disk_path=disk_path
             )
         )
