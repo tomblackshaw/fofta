@@ -41,6 +41,8 @@ Todo:
 """
 
 
-def MAIN_rejig_the_currently_running_PRISTINE_armbian_filesystem(source_img_fname, root_FS_format, output_image_fname):
+def MAIN_rejig_the_currently_running_PRISTINE_armbian_filesystem(
+    source_img_fname, root_FS_format, output_image_fname
+):
 
     pass

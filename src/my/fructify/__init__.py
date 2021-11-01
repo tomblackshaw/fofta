@@ -41,6 +41,8 @@ Todo:
 """
 
 
-def fructify_me(source=None, filesystem=None, destination=None, rclocal=False, gui=False):
+def fructify_me(
+    source=None, filesystem=None, destination=None, rclocal=False, gui=False
+):
 
     pass

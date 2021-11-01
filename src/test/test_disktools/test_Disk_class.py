@@ -17,15 +17,19 @@ import unittest
 
 from my.disktools.disks import Disk, is_this_a_disk, set_disk_id
 from my.disktools.partitions import partition_exists, _FS_EXTENDED
-from my.exceptions import StartEndAssBackwardsError, MissingPriorPartitionError, \
-    PartitionWasNotCreatedError, \
-    DiskIDSettingFailureError, PartitionDeletionError, \
-    PartitionsOverlapError, WeNeedAnExtendedPartitionError
+from my.exceptions import (
+    StartEndAssBackwardsError,
+    MissingPriorPartitionError,
+    PartitionWasNotCreatedError,
+    DiskIDSettingFailureError,
+    PartitionDeletionError,
+    PartitionsOverlapError,
+    WeNeedAnExtendedPartitionError,
+)
 from my.globals import call_binary
 
 
 class TestAAADiskClassCreation(unittest.TestCase):
-
     def setUp(self):
         pass
 
@@ -40,7 +44,6 @@ class TestAAADiskClassCreation(unittest.TestCase):
 
 
 class TestDeleteAllPartitions(unittest.TestCase):
-
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
         self.disk = Disk(MY_TESTDISK_PATH)
@@ -53,7 +56,6 @@ class TestDeleteAllPartitions(unittest.TestCase):
 
 
 class TestCreate12123(unittest.TestCase):
-
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
         self.disk = Disk(MY_TESTDISK_PATH)
@@ -73,7 +75,6 @@ class TestCreate12123(unittest.TestCase):
 
 
 class TestCreateFullThenAddOne(unittest.TestCase):
-
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
         self.disk = Disk(MY_TESTDISK_PATH)
@@ -88,7 +89,6 @@ class TestCreateFullThenAddOne(unittest.TestCase):
 
 
 class TestCreateDeliberatelyOverlappingPartitions(unittest.TestCase):
-
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
         self.disk = Disk(MY_TESTDISK_PATH)
@@ -101,29 +101,34 @@ class TestCreateDeliberatelyOverlappingPartitions(unittest.TestCase):
         self.disk.add_partition(partno=1, start=50000, end=99999)
         self.assertEqual(len(self.disk.partitions), 1)
         with self.assertRaises(StartEndAssBackwardsError):
-            self.disk.add_partition(partno=2,
-                                    start=None,
-                                    end=self.disk.partitions[-1].start)
+            self.disk.add_partition(
+                partno=2, start=None, end=self.disk.partitions[-1].start
+            )
         self.assertEqual(len(self.disk.partitions), 1)
         with self.assertRaises(PartitionsOverlapError):
-            self.disk.add_partition(partno=2,
-                                    start=self.disk.partitions[-1].start,
-                                    end=self.disk.partitions[-1].end)
+            self.disk.add_partition(
+                partno=2,
+                start=self.disk.partitions[-1].start,
+                end=self.disk.partitions[-1].end,
+            )
         self.assertEqual(len(self.disk.partitions), 1)
         with self.assertRaises(PartitionsOverlapError):
-            self.disk.add_partition(partno=2,
-                                    start=self.disk.partitions[-1].end,
-                                    end=self.disk.partitions[-1].end + 99999)
+            self.disk.add_partition(
+                partno=2,
+                start=self.disk.partitions[-1].end,
+                end=self.disk.partitions[-1].end + 99999,
+            )
         self.assertEqual(len(self.disk.partitions), 1)
-        self.disk.add_partition(partno=2,
-                                start=self.disk.partitions[-1].end + 1,
-                                end=self.disk.partitions[-1].end + 99999)
+        self.disk.add_partition(
+            partno=2,
+            start=self.disk.partitions[-1].end + 1,
+            end=self.disk.partitions[-1].end + 99999,
+        )
         partition_exists(self.disk.node, 2)
         self.assertEqual(len(self.disk.partitions), 2)
 
 
 class TestMakeFourAndFiddleWithP2(unittest.TestCase):
-
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
         self.disk = Disk(MY_TESTDISK_PATH)
@@ -162,12 +167,10 @@ class TestMakeFourAndFiddleWithP2(unittest.TestCase):
         self.assertEqual(self.disk.partitions[1].partno, 3)
         self.assertEqual(self.disk.partitions[2].partno, 4)
         with self.assertRaises(ValueError):
-            self.disk.add_partition(
-                2, fstype=_FS_EXTENDED, end=299999, size_in_MiB=256)
+            self.disk.add_partition(2, fstype=_FS_EXTENDED, end=299999, size_in_MiB=256)
 
 
 class TestLogicalPartitions_ONE(unittest.TestCase):
-
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
         self.disk = Disk(MY_TESTDISK_PATH)
@@ -206,7 +209,6 @@ class TestLogicalPartitions_ONE(unittest.TestCase):
 
 
 class TestSettingDiskID(unittest.TestCase):
-
     def setUp(self):
         self.disk = Disk(MY_TESTDISK_PATH)
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
@@ -218,21 +220,33 @@ class TestSettingDiskID(unittest.TestCase):
     def testName(self):
         for _ in range(5):
             retcode, stdout_txt, stderr_txt = call_binary(
-                ['bash'], '''printf "%08x" 0x$(dd if=/dev/urandom bs=1 count=200 2>/dev/null | tr -dc 'a-f0-9' | cut -c-8)''')
-            new_diskid = '0x{stdout_txt}'.format(stdout_txt=stdout_txt)
+                ["bash"],
+                """printf "%08x" 0x$(dd if=/dev/urandom bs=1 count=200 2>/dev/null | tr -dc 'a-f0-9' | cut -c-8)""",
+            )
+            new_diskid = "0x{stdout_txt}".format(stdout_txt=stdout_txt)
             set_disk_id(self.disk.node, new_diskid)
             self.assertNotEqual(self.disk.disk_id, new_diskid)
             self.disk.update()
             self.assertEqual(self.disk.disk_id, new_diskid)
         del retcode, stdout_txt, stderr_txt
-        for new_id in (None, '', '0x123456789', '0x', '0x1234567', '1234567890',
-                       '', 'ABCDEFGHIJ', '0xABCDEFGH', '0xabdefgh', 0x1234abcd):
+        for new_id in (
+            None,
+            "",
+            "0x123456789",
+            "0x",
+            "0x1234567",
+            "1234567890",
+            "",
+            "ABCDEFGHIJ",
+            "0xABCDEFGH",
+            "0xabdefgh",
+            0x1234ABCD,
+        ):
             with self.assertRaises(DiskIDSettingFailureError):
                 set_disk_id(self.disk.node, new_id)
 
 
 class TestLogicalPartitions_TWO(unittest.TestCase):
-
     def setUp(self):
         self.disk = Disk(MY_TESTDISK_PATH)
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
@@ -269,7 +283,7 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.assertFalse(partition_exists(disk_path=self.disk.node, partno=6))
 
     def testMake5And7(self):
-        '''
+        """
         from my.disktools.disks import *
         from my.disktools.partitions import partition_exists, _FS_EXTENDED
         d = Disk('/dev/sda')
@@ -285,8 +299,8 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         assert(True is partition_exists(disk_path=d.node, partno=5))
         assert(False is partition_exists(disk_path=d.node, partno=6))
         assert(False is partition_exists(disk_path=d.node, partno=7))
-        d.add_partition(partno=7, size_in_MiB=100)        
-        '''
+        d.add_partition(partno=7, size_in_MiB=100)
+        """
         self.assertFalse(partition_exists(disk_path=self.disk.node, partno=5))
         self.assertFalse(partition_exists(disk_path=self.disk.node, partno=6))
         self.assertFalse(partition_exists(disk_path=self.disk.node, partno=7))
