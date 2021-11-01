@@ -59,7 +59,8 @@ class TestSimpleAddAndIndividualDel(unittest.TestCase):
         for _ in range(3):
             self.assertFalse(partition_exists(realnode, 1))
             self.assertFalse(partition_exists(MY_TESTDISK_PATH, 1))
-            add_partition(disk_path=MY_TESTDISK_PATH, partno=1, start=2048, end=999999, fstype='83')  # , debug, size_in_MiB)
+            add_partition(disk_path=MY_TESTDISK_PATH, partno=1, start=2048,
+                          end=999999, fstype='83')  # , debug, size_in_MiB)
             self.assertTrue(partition_exists(realnode, 1))
             self.assertTrue(partition_exists(MY_TESTDISK_PATH, 1))
             delete_partition(MY_TESTDISK_PATH, 1)
@@ -80,7 +81,8 @@ class TestAnMBAddAndIndividualDel(unittest.TestCase):
         for _ in range(3):
             self.assertFalse(partition_exists(realnode, 1))
             self.assertFalse(partition_exists(MY_TESTDISK_PATH, 1))
-            add_partition(disk_path=MY_TESTDISK_PATH, partno=1, start=2048, size_in_MiB=1000, fstype='83')
+            add_partition(disk_path=MY_TESTDISK_PATH, partno=1,
+                          start=2048, size_in_MiB=1000, fstype='83')
             self.assertTrue(partition_exists(realnode, 1))
             self.assertTrue(partition_exists(MY_TESTDISK_PATH, 1))
             delete_partition(MY_TESTDISK_PATH, 1)
@@ -100,7 +102,8 @@ class TestOverlappingSubroutine(unittest.TestCase):
 
     def testRidiculouslySmallPartition(self):
         with self.assertRaises(PartitionWasNotCreatedError):
-            self.disk.add_partition(partno=1, start=500, end=999)  # too small (>=2048 needed)
+            # too small (>=2048 needed)
+            self.disk.add_partition(partno=1, start=500, end=999)
 
     def testName(self):
         '''
@@ -146,7 +149,8 @@ class TestCreateAndDeleteFourPartitions(unittest.TestCase):
             self.assertFalse(partition_exists(MY_TESTDISK_PATH, partno))
             start = 2048 if partno == 1 else size_in_sectors * (partno - 1)
             end = size_in_sectors * partno - 1
-            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno, start=start, end=end, fstype='83')  # , debug, size_in_MiB)
+            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno,
+                                start=start, end=end, fstype='83')  # , debug, size_in_MiB)
             wozzit_A = partition_exists(MY_TESTDISK_PATH, partno)
             os.system('sync;sync;sync; partprobe; sync;sync;sync')
             wozzit_B = partition_exists(MY_TESTDISK_PATH, partno)
@@ -160,7 +164,8 @@ class TestCreateAndDeleteFourPartitions(unittest.TestCase):
             self.assertFalse(partition_exists(MY_TESTDISK_PATH, partno))
             start = 2048 if partno == 1 else size_in_sectors * (partno - 1)
             end = size_in_sectors * partno - 1
-            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno, start=start, end=end, fstype='83')  # , debug, size_in_MiB)
+            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno,
+                                start=start, end=end, fstype='83')  # , debug, size_in_MiB)
             os.system('sync;sync;sync; partprobe; sync;sync;sync')
             self.assertEqual(True, partition_exists(MY_TESTDISK_PATH, partno))
             self.assertEqual(res, 0)
@@ -172,7 +177,8 @@ class TestCreateAndDeleteFourPartitions(unittest.TestCase):
             start = 2048 if partno == 1 else size_in_sectors * (partno - 1)
             end = size_in_sectors * partno - 1
             self.assertEqual(False, partition_exists(MY_TESTDISK_PATH, partno))
-            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno, start=start, end=end, fstype='83')  # , debug, size_in_MiB)
+            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno,
+                                start=start, end=end, fstype='83')  # , debug, size_in_MiB)
             os.system('partprobe')
             self.assertEqual(True, partition_exists(MY_TESTDISK_PATH, partno))
             self.assertEqual(res, 0)
@@ -184,7 +190,8 @@ class TestCreateAndDeleteFourPartitions(unittest.TestCase):
             start = 2048 if partno == 1 else size_in_sectors * (partno - 1)
             end = size_in_sectors * partno - 1
             self.assertEqual(False, partition_exists(MY_TESTDISK_PATH, partno))
-            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno, start=start, end=end, fstype='83')  # , debug, size_in_MiB)
+            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno,
+                                start=start, end=end, fstype='83')  # , debug, size_in_MiB)
             os.system('partprobe {node}'.format(node=MY_TESTDISK_PATH))
             self.assertEqual(True, partition_exists(MY_TESTDISK_PATH, partno))
             self.assertEqual(res, 0)
@@ -196,7 +203,8 @@ class TestCreateAndDeleteFourPartitions(unittest.TestCase):
             start = 2048 if partno == 1 else size_in_sectors * (partno - 1)
             end = size_in_sectors * partno - 1
             self.assertEqual(False, partition_exists(MY_TESTDISK_PATH, partno))
-            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno, start=start, end=end, fstype='83')  # , debug, size_in_MiB)
+            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno,
+                                start=start, end=end, fstype='83')  # , debug, size_in_MiB)
             os.system('sync;sync;sync')
             self.assertEqual(True, partition_exists(MY_TESTDISK_PATH, partno))
             self.assertEqual(res, 0)
@@ -207,7 +215,8 @@ class TestCreateAndDeleteFourPartitions(unittest.TestCase):
             self.assertFalse(partition_exists(MY_TESTDISK_PATH, partno))
             start = 2048 if partno == 1 else size_in_sectors * (partno - 1)
             end = size_in_sectors * partno - 1
-            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno, start=start, end=end, fstype='83')  # , debug, size_in_MiB)
+            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno,
+                                start=start, end=end, fstype='83')  # , debug, size_in_MiB)
             self.assertEqual(True, partition_exists(MY_TESTDISK_PATH, partno))
             self.assertEqual(res, 0)
 
@@ -227,7 +236,8 @@ class TestCreate123Delete2Remake2(unittest.TestCase):
             self.assertFalse(partition_exists(MY_TESTDISK_PATH, partno))
             start = 2048 if partno == 1 else size_in_sectors * (partno - 1)
             end = size_in_sectors * partno - 1
-            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno, start=start, end=end, fstype='83')  # , debug, size_in_MiB)
+            res = add_partition(disk_path=MY_TESTDISK_PATH, partno=partno,
+                                start=start, end=end, fstype='83')  # , debug, size_in_MiB)
             self.assertEqual(True, partition_exists(MY_TESTDISK_PATH, partno))
             self.assertEqual(res, 0)
             starts[str(partno)] = start
@@ -242,9 +252,9 @@ def compare_devdiskbyxxxx_path_what_should_be_with_what_is(partition):
         should_be = devdiskbyxxxx_path(partition.node, searchby)
         but_is = getattr(partition, searchby)
         if should_be != but_is:
-            print("{node}.{searchby} should read {should_be} but actually is {but_is}".format(\
-                                node=partition.node, searchby=searchby, \
-                                should_be=should_be, but_is=but_is))
+            print("{node}.{searchby} should read {should_be} but actually is {but_is}".format(
+                node=partition.node, searchby=searchby,
+                should_be=should_be, but_is=but_is))
             mismatches += 1
     return mismatches
 
@@ -274,70 +284,94 @@ class TestLabelAndIDThing(unittest.TestCase):
         d = Disk(MY_TESTDISK_PATH)
         d.add_partition(fstype='83', size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
+        self.assertEqual(
+            0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
         my_label = 'MY_LAB%d' % random.randint(0, 100)
-        os.system("(yes y 2> /dev/null)| mkfs.ext4 -L {label} {node} > /dev/null 2> /dev/null".format(label=my_label, node=d.partitions[-1].node))
+        os.system("(yes y 2> /dev/null)| mkfs.ext4 -L {label} {node} > /dev/null 2> /dev/null".format(
+            label=my_label, node=d.partitions[-1].node))
         d.update()
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
+        self.assertEqual(
+            0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
 
     def testDevdiskbyxxxx_path_TWO(self):
         from my.disktools.disks import Disk
         d = Disk(MY_TESTDISK_PATH)
         d.add_partition(fstype='83', size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
+        self.assertEqual(
+            0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
         my_label = 'MY_LAB%d' % random.randint(0, 100)
-        os.system("(yes y 2> /dev/null) | mkfs.ext4 -L {label} {node} > /dev/null 2> /dev/null".format(label=my_label, node=d.partitions[-1].node))
+        os.system("(yes y 2> /dev/null) | mkfs.ext4 -L {label} {node} > /dev/null 2> /dev/null".format(
+            label=my_label, node=d.partitions[-1].node))
         d.update()
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
+        self.assertEqual(
+            0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
 
     def testNameExt4_halfassed_update(self):
         from my.disktools.disks import Disk
         d = Disk(MY_TESTDISK_PATH)
         d.add_partition(fstype='83', size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
+        self.assertEqual(
+            0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
         my_label = 'MY_LAB%d' % random.randint(0, 100)
-        os.system("(yes y 2> /dev/null)| mkfs.ext4 -L {label} {node}  > /dev/null 2> /dev/null".format(label=my_label, node=d.partitions[-1].node))
+        os.system("(yes y 2> /dev/null)| mkfs.ext4 -L {label} {node}  > /dev/null 2> /dev/null".format(
+            label=my_label, node=d.partitions[-1].node))
         d.update()
-        self.assertEqual(d.partitions[-1].label, '/dev/disk/by-label/%s' % my_label)  # ...because we have to update all of d()
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))  # ...because we have to update all of d()
+        # ...because we have to update all of d()
+        self.assertEqual(d.partitions[-1].label,
+                         '/dev/disk/by-label/%s' % my_label)
+        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(
+            d.partitions[0]))  # ...because we have to update all of d()
 
     def testNameExt4_full_update(self):
         from my.disktools.disks import Disk
         d = Disk(MY_TESTDISK_PATH)
         d.add_partition(fstype='83', size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
+        self.assertEqual(
+            0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
         my_label = 'MY_LAB%d' % random.randint(0, 100)
-        os.system("(yes y 2> /dev/null)| mkfs.ext4 -L {label} {node}  > /dev/null 2> /dev/null".format(label=my_label, node=d.partitions[-1].node))
+        os.system("(yes y 2> /dev/null)| mkfs.ext4 -L {label} {node}  > /dev/null 2> /dev/null".format(
+            label=my_label, node=d.partitions[-1].node))
         d.update()
-        self.assertEqual(d.partitions[-1].label, '/dev/disk/by-label/%s' % my_label)
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
+        self.assertEqual(d.partitions[-1].label,
+                         '/dev/disk/by-label/%s' % my_label)
+        self.assertEqual(
+            0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
 
     def testNameBtrfs(self):
         from my.disktools.disks import Disk
         d = Disk(MY_TESTDISK_PATH)
         d.add_partition(fstype='83', size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
+        self.assertEqual(
+            0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
         my_label = 'MY_LAB%d' % random.randint(0, 100)
-        os.system("mkfs.btrfs -L {label} -f {node} > /dev/null 2> /dev/null".format(label=my_label, node=d.partitions[-1].node))
+        os.system("mkfs.btrfs -L {label} -f {node} > /dev/null 2> /dev/null".format(
+            label=my_label, node=d.partitions[-1].node))
         d.update()
-        self.assertEqual(d.partitions[-1].label, '/dev/disk/by-label/%s' % my_label)
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
+        self.assertEqual(d.partitions[-1].label,
+                         '/dev/disk/by-label/%s' % my_label)
+        self.assertEqual(
+            0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
 
     def testNameBtrfsFLAWEDwithoutpartprobe(self):
         from my.disktools.disks import Disk
         d = Disk(MY_TESTDISK_PATH)
         d.add_partition(fstype='83', size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
+        self.assertEqual(
+            0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
         my_label = 'MY_LAB%d' % random.randint(0, 100)
-        os.system("mkfs.btrfs -L {label} -f {node} > /dev/null 2> /dev/null".format(label=my_label, node=d.partitions[-1].node))
+        os.system("mkfs.btrfs -L {label} -f {node} > /dev/null 2> /dev/null".format(
+            label=my_label, node=d.partitions[-1].node))
         d.update()
-        self.assertEqual(d.partitions[-1].label, '/dev/disk/by-label/%s' % my_label)  # That's why this is NotEqual!
-        self.assertEqual(0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
+        # That's why this is NotEqual!
+        self.assertEqual(d.partitions[-1].label,
+                         '/dev/disk/by-label/%s' % my_label)
+        self.assertEqual(
+            0, compare_devdiskbyxxxx_path_what_should_be_with_what_is(d.partitions[0]))
 
 
 if __name__ == "__main__":

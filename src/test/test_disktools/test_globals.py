@@ -42,9 +42,11 @@ class TestCallBinary(unittest.TestCase):
 
     def testDaftParameters(self):
         _ = call_binary(['ls'])
-        (retcode, stdin_str, stdout_str) = call_binary(['ls'])  # @UnusedVariable
+        (retcode, stdin_str, stdout_str) = call_binary(
+            ['ls'])  # @UnusedVariable
         with self.assertRaises(ValueError):
-            here, there = call_binary(['ls'])  # @UnusedVariable  #pylint: disable=unbalanced-tuple-unpacking
+            # @UnusedVariable  #pylint: disable=unbalanced-tuple-unpacking
+            here, there = call_binary(['ls'])
         with self.assertRaises(FileNotFoundError):
             _ = call_binary(['lsd123'])
         _ = call_binary(['ls'], None)
@@ -52,7 +54,8 @@ class TestCallBinary(unittest.TestCase):
 
     def testKnownNonzeroResults(self):
         assert(not os.path.exists('/this/folder/really/shouldnt/exist'))
-        retcode, stdout_txt, stderr_txt = call_binary(['ls', '/this/folder/really/shouldnt/exist'])
+        retcode, stdout_txt, stderr_txt = call_binary(
+            ['ls', '/this/folder/really/shouldnt/exist'])
         self.assertNotEqual(retcode, 0)
         self.assertNotEqual(stderr_txt, '')
         self.assertNotEqual(stderr_txt, None)
@@ -61,27 +64,29 @@ class TestCallBinary(unittest.TestCase):
     def testKnownZeroResults(self):
         self.assertEqual(call_binary(['ls'])[0], 0)
         self.assertEqual(call_binary(['ls', '/'])[0], 0)
-        retcode, stdout_txt, stderr_txt = call_binary(['ls', self.disk.node ])
+        retcode, stdout_txt, stderr_txt = call_binary(['ls', self.disk.node])
         del stdout_txt, stderr_txt
         self.assertEqual(retcode, 0)
         self.disk.add_partition(partno=1, start=5555, end=9999, fstype='83')
         self.assertEqual(call_binary(['ls', self.disk.node])[0], 0)
-        self.assertEqual(call_binary(['ls', self.disk.partitions[0].node])[0], 0)
-        retcode, stdout_txt, stderr_txt = call_binary(['fdisk', '-l', self.disk.node])
+        self.assertEqual(call_binary(
+            ['ls', self.disk.partitions[0].node])[0], 0)
+        retcode, stdout_txt, stderr_txt = call_binary(
+            ['fdisk', '-l', self.disk.node])
         self.assertEqual(retcode, 0)
-        self.assertTrue(stdout_txt.find(str(self.disk.partitions[0].start)) >= 0 \
-                    and stdout_txt.find(str(self.disk.partitions[0].end)) >= 0 \
-                    and stdout_txt.find(str(self.disk.partitions[0].node)) >= 0)
+        self.assertTrue(stdout_txt.find(str(self.disk.partitions[0].start)) >= 0
+                        and stdout_txt.find(str(self.disk.partitions[0].end)) >= 0
+                        and stdout_txt.find(str(self.disk.partitions[0].node)) >= 0)
         self.assertEqual(stderr_txt, '')
-    
+
     def testEcho(self):
         for i in range(10):
             hexstr = generate_random_string(random.randint(10, 40))
-            retcode, stdout_txt, stderr_txt = call_binary(['bash'], '''echo -en "{hexstr}"'''.format(hexstr=hexstr)) 
+            retcode, stdout_txt, stderr_txt = call_binary(
+                ['bash'], '''echo -en "{hexstr}"'''.format(hexstr=hexstr))
             self.assertEqual(retcode, 0)
             self.assertEqual(hexstr, stdout_txt)
         del i, retcode, stdout_txt, stderr_txt
-    
 
 
 if __name__ == "__main__":

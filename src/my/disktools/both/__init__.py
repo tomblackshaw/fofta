@@ -58,7 +58,9 @@ def devdiskbyxxxx_path(device_path, searchby):
         raise ValueError("Device path %s does not exist" % device_path)
     altdir = "/dev/disk/by-%s" % searchby
     if not os.path.exists(altdir):
-        raise ValueError("Cannot search by %s -- directory %s not found" % (searchby, altdir))
+        raise ValueError(
+            "Cannot search by %s -- directory %s not found" % (searchby, altdir)
+        )
     for p in os.listdir(altdir):
         fullpath = os.path.join(altdir, p)
         try:
@@ -68,4 +70,3 @@ def devdiskbyxxxx_path(device_path, searchby):
         except FileNotFoundError:
             pass
     return None
-

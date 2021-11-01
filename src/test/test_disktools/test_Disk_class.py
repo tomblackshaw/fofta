@@ -18,8 +18,8 @@ import unittest
 from my.disktools.disks import Disk, is_this_a_disk, set_disk_id
 from my.disktools.partitions import partition_exists, _FS_EXTENDED
 from my.exceptions import StartEndAssBackwardsError, MissingPriorPartitionError, \
-            PartitionWasNotCreatedError, \
-            DiskIDSettingFailureError, PartitionDeletionError, \
+    PartitionWasNotCreatedError, \
+    DiskIDSettingFailureError, PartitionDeletionError, \
     PartitionsOverlapError, WeNeedAnExtendedPartitionError
 from my.globals import call_binary
 
@@ -116,8 +116,8 @@ class TestCreateDeliberatelyOverlappingPartitions(unittest.TestCase):
                                     end=self.disk.partitions[-1].end + 99999)
         self.assertEqual(len(self.disk.partitions), 1)
         self.disk.add_partition(partno=2,
-                                    start=self.disk.partitions[-1].end + 1,
-                                    end=self.disk.partitions[-1].end + 99999)
+                                start=self.disk.partitions[-1].end + 1,
+                                end=self.disk.partitions[-1].end + 99999)
         partition_exists(self.disk.node, 2)
         self.assertEqual(len(self.disk.partitions), 2)
 
@@ -162,7 +162,8 @@ class TestMakeFourAndFiddleWithP2(unittest.TestCase):
         self.assertEqual(self.disk.partitions[1].partno, 3)
         self.assertEqual(self.disk.partitions[2].partno, 4)
         with self.assertRaises(ValueError):
-            self.disk.add_partition(2, fstype=_FS_EXTENDED, end=299999, size_in_MiB=256)
+            self.disk.add_partition(
+                2, fstype=_FS_EXTENDED, end=299999, size_in_MiB=256)
 
 
 class TestLogicalPartitions_ONE(unittest.TestCase):
@@ -216,7 +217,8 @@ class TestSettingDiskID(unittest.TestCase):
 
     def testName(self):
         for _ in range(5):
-            retcode, stdout_txt, stderr_txt = call_binary(['bash'], '''printf "%08x" 0x$(dd if=/dev/urandom bs=1 count=200 2>/dev/null | tr -dc 'a-f0-9' | cut -c-8)''')
+            retcode, stdout_txt, stderr_txt = call_binary(
+                ['bash'], '''printf "%08x" 0x$(dd if=/dev/urandom bs=1 count=200 2>/dev/null | tr -dc 'a-f0-9' | cut -c-8)''')
             new_diskid = '0x{stdout_txt}'.format(stdout_txt=stdout_txt)
             set_disk_id(self.disk.node, new_diskid)
             self.assertNotEqual(self.disk.disk_id, new_diskid)
@@ -345,7 +347,7 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.disk.delete_partition(6)
         self.assertTrue(partition_exists(self.disk.node, 5))
         self.assertFalse(partition_exists(self.disk.node, 6))
-        
+
     # def testSomeOtherBS(self):
     #     '''
     #     self.disk.delete_partition(1)
@@ -360,8 +362,7 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
     #         txt = f.read()
     #     '''
     #     pass
-        
-    
+
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']

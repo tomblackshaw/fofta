@@ -16,7 +16,6 @@ import unittest
 from my.disktools.partitions import add_partition, delete_partition, delete_all_partitions
 
 
-
 class TestZero(unittest.TestCase):
 
     def setUp(self):
@@ -26,7 +25,7 @@ class TestZero(unittest.TestCase):
         delete_all_partitions(MY_TESTDISK_PATH)
 
     def testName(self):
-        
+
         from my.disktools.disks import threadsafeDisk
         a = threadsafeDisk(MY_TESTDISK_PATH)
         b = threadsafeDisk(MY_TESTDISK_PATH)
@@ -37,7 +36,8 @@ class TestZero(unittest.TestCase):
         a.add_partition(partno=1, start=5000, end=9999, fstype='83')
         self.assertEqual(a.partitions[0].node, b.partitions[0].node)
         pdev = a.partitions[0].node
-        delete_all_partitions(MY_TESTDISK_PATH)  # This does not update a.partitions or b.partitions
+        # This does not update a.partitions or b.partitions
+        delete_all_partitions(MY_TESTDISK_PATH)
         self.assertEqual(b.partitions[0].node, pdev)
         self.assertEqual(a.partitions[0].node, pdev)
         self.assertEqual(len(a.partitions), len(b.partitions))
@@ -51,7 +51,8 @@ class TestZero(unittest.TestCase):
         self.assertEqual(b.partitions[0].end, 9997)
         self.assertEqual(a.partitions[0].end, 9997)
         delete_partition(a.node, 1)
-        add_partition(disk_path=a.node, partno=1, start=5000, end=7777, fstype='83')
+        add_partition(disk_path=a.node, partno=1,
+                      start=5000, end=7777, fstype='83')
         self.assertEqual(b.partitions[0].end, 9997)
         self.assertEqual(a.partitions[0].end, 9997)
         a.partitions[-1].update()
@@ -62,20 +63,17 @@ class TestZero(unittest.TestCase):
         self.assertEqual(a.partitions, [])
 
 
-
-
 class TestOne(unittest.TestCase):
-    
+
     def setUp(self):
         delete_all_partitions(MY_TESTDISK_PATH)
 
     def tearDown(self):
         delete_all_partitions(MY_TESTDISK_PATH)
-    
+
     def testSimpleSingleThread(self):
         from my.disktools.disks import threadsafeDisk
         d = threadsafeDisk(MY_TESTDISK_PATH)
-        
 
 
 if __name__ == "__main__":

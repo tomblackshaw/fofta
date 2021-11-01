@@ -22,52 +22,58 @@ import string
 
 def generate_random_string(length):
     """Generate a N-chars-long random alphanumeric string"""
-    x = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(length))
+    x = "".join(
+        random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
+        for _ in range(length)
+    )
     return x
-
 
 
 def call_binary(param_lst, input_str=None):
     """Retrieve the disk ID, disk size (bytes and sectors), and sector size.
 
-    This subroutine interrogates the disk device path via fdisk and obtains
-    the disk ID (its eight-digit hexadecimal string), its size in bytes,
-    its size in disk sectors, and the sector size.
+        This subroutine interrogates the disk device path via fdisk and obtains
+        the disk ID (its eight-digit hexadecimal string), its size in bytes,
+        its size in disk sectors, and the sector size.
 
-    Args:
-        disk_path (:obj:`str`): The /dev entry (e.g. /dev/sda) of the disk_path.
+        Args:
+            disk_path (:obj:`str`): The /dev entry (e.g. /dev/sda) of the disk_path.
 
-    Returns:
-        tuple (
-            :obj:`str` - A ten-character string, composed of the
-                prefix '0x' and then eight hexadecimal characters, e.g.
-                "0x1234ABCD".
-            int - The maximum capacity of the disk, in bytes.
-            int - The maximum capacity of the disk, in sectors.
-            int - The size of each sector, in bytes.
-            )
+        Returns:
+            tuple (
+                :obj:`str` - A ten-character string, composed of the
+                    prefix '0x' and then eight hexadecimal characters, e.g.
+                    "0x1234ABCD".
+                int - The maximum capacity of the disk, in bytes.
+                int - The maximum capacity of the disk, in sectors.
+                int - The size of each sector, in bytes.
+                )
 
-    Example:
-        retcode_int, stdout_txt, stderr_txt, stdout_txt = call_binary(['fdisk', '/dev/sda'], '''l
-q
-''')
-    Raises:
-        FileNotFoundError: Binary not found.
+        Example:
+            retcode_int, stdout_txt, stderr_txt, stdout_txt = call_binary(['fdisk', '/dev/sda'], '''l
+    q
+    ''')
+        Raises:
+            FileNotFoundError: Binary not found.
 
-    Todo:
-        * Add more TODOs
+        Todo:
+            * Add more TODOs
 
     """
     if input_str is None:
-        input_str = ''
+        input_str = ""
     if type(param_lst) not in (list, tuple):
-        raise ValueError("call_binary()'s first parameter should be a list or tuple, \
-e.g. ['fdisk', '/dev/sda'].")
-    proc = subprocess.Popen(param_lst, stderr=subprocess.PIPE, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        raise ValueError(
+            "call_binary()'s first parameter should be a list or tuple, \
+e.g. ['fdisk', '/dev/sda']."
+        )
+    proc = subprocess.Popen(
+        param_lst, stderr=subprocess.PIPE, stdin=subprocess.PIPE, stdout=subprocess.PIPE
+    )
     res_pair = proc.communicate(bytes(input_str, "ascii"))
-    to_be_returned = (proc.returncode, \
-                        (None if res_pair[0] is None else res_pair[0].decode('UTF-8')), \
-                        (None if res_pair[1] is None else res_pair[1].decode('UTF-8')))
+    to_be_returned = (
+        proc.returncode,
+        (None if res_pair[0] is None else res_pair[0].decode("UTF-8")),
+        (None if res_pair[1] is None else res_pair[1].decode("UTF-8")),
+    )
     return to_be_returned
-
-

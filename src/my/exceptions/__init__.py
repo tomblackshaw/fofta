@@ -20,10 +20,12 @@ Todo:
 
 """
 
-from my.exceptions.bases import PartitionCreationException, \
-                                PartitionModificationException, \
-                                PartitionDeletionException, \
-                                MyDisktoolsOtherException
+from my.exceptions.bases import (
+    PartitionCreationException,
+    PartitionModificationException,
+    PartitionDeletionException,
+    MyDisktoolsOtherException,
+)
 
 
 class PartitionsOverlapError(PartitionCreationException):
@@ -46,7 +48,7 @@ class PartitionsOverlapError(PartitionCreationException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -67,7 +69,7 @@ class ExistentPriorPartitionError(PartitionCreationException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -91,7 +93,7 @@ class MissingPriorPartitionError(PartitionCreationException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -116,7 +118,7 @@ class StartEndAssBackwardsError(PartitionCreationException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -140,7 +142,7 @@ class WeNeedAnExtendedPartitionError(PartitionCreationException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -162,9 +164,10 @@ class PartitionWasNotCreatedError(PartitionCreationException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
+
 
 # class NonspecificPartitionCreationError(PartitionCreationException):
 #     """Raised if the partition can't be created.
@@ -210,7 +213,7 @@ class PartitionDeletionError(PartitionDeletionException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -235,7 +238,7 @@ class PartitionModificationError(PartitionModificationException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -258,7 +261,7 @@ class PartitionAttributeReadFailureError(PartitionModificationError):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -281,7 +284,7 @@ class PartitionAttributeWriteFailureError(PartitionModificationError):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -304,7 +307,7 @@ class PartitionTableReorderingError(PartitionModificationError):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -325,6 +328,6 @@ class DiskIDSettingFailureError(MyDisktoolsOtherException):
 
     """
 
-    def __init__(self, msg, code=None):  #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code

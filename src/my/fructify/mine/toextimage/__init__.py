@@ -44,4 +44,3 @@ Todo:
 def MAIN_create_a_fructified_armbian_distro_image():
 
     pass
-

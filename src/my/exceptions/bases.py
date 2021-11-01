@@ -38,7 +38,7 @@ class MyException(Exception):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -59,7 +59,7 @@ class MyDisktoolsException(MyException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -80,7 +80,7 @@ class MyDisktoolsDiskException(MyDisktoolsException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -101,7 +101,7 @@ class MyDisktoolsPartitionException(MyDisktoolsException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -122,7 +122,7 @@ class PartitionCreationException(MyDisktoolsPartitionException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -143,7 +143,7 @@ class PartitionModificationException(MyDisktoolsPartitionException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -168,7 +168,7 @@ class PartitionDeletionException(MyDisktoolsException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -195,7 +195,7 @@ class MyDisktoolsOtherException(MyDisktoolsException):
 
     """
 
-    def __init__(self, msg, code=None):  #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
@@ -222,6 +222,6 @@ class MyFructifyException(MyException):
 
     """
 
-    def __init__(self, msg, code=None): #pylint: disable=super-init-not-called
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code

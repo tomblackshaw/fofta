@@ -36,7 +36,8 @@ class TestDeducePartno(unittest.TestCase):
     def testAbilityToReturnTrueCorrectly(self):
         for stub in SAMPLE_LIST_OF_DRIVES_STUBS:
             node = '/dev/%s' % (stub)
-            self.assertTrue(is_this_a_disk(node, insist_on_this_existence_state=True), "%s *is* a disk, actually" % node)
+            self.assertTrue(is_this_a_disk(
+                node, insist_on_this_existence_state=True), "%s *is* a disk, actually" % node)
 
     def testAbilityToReturnFalseCorrectly(self):
         for stub in SAMPLE_LIST_OF_DRIVES_STUBS:

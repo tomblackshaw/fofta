@@ -28,11 +28,16 @@ import subprocess
 
 from my.disktools.both import devdiskbyxxxx_path
 from my.disktools.partitions import deduce_partno, add_partition, _FS_EXTENDED
-from my.exceptions import PartitionsOverlapError, \
-            StartEndAssBackwardsError, MissingPriorPartitionError, \
-            PartitionWasNotCreatedError, \
-            DiskIDSettingFailureError, ExistentPriorPartitionError, \
-    WeNeedAnExtendedPartitionError, PartitionTableReorderingError
+from my.exceptions import (
+    PartitionsOverlapError,
+    StartEndAssBackwardsError,
+    MissingPriorPartitionError,
+    PartitionWasNotCreatedError,
+    DiskIDSettingFailureError,
+    ExistentPriorPartitionError,
+    WeNeedAnExtendedPartitionError,
+    PartitionTableReorderingError,
+)
 from my.globals import call_binary
 import threading
 
@@ -42,11 +47,11 @@ the_threadsafeDisk_lock = threading.Lock()
 
 def threadsafeDisk(node):
     """Return a threadsafe singleton (single/common instance) for one specific disk.
-    
+
     It is true that d=Disk('/dev/sda') generates one class instance that wraps around
     one specific disk. That's great. Unfortunately, e=Disk('/dev/sda') does the same
     thing; changes to d's properties don't update e's properties. This is a problem.
-    
+
     If you use d=threadsafeDisk('/dev/sda') instead, the function will return the
     same Disk('/dev/sda') instance whenever the function is called.
 
@@ -83,7 +88,6 @@ def threadsafeDisk(node):
     return retval
 
 
-
 def is_this_a_disk(device_path, insist_on_this_existence_state=None):
     """Figure out if the supplied path is a disk (True) or a partition (False).
 
@@ -115,28 +119,31 @@ def is_this_a_disk(device_path, insist_on_this_existence_state=None):
         exists = insist_on_this_existence_state
     else:
         exists = os.path.exists(device_path)
-    if device_path in (None, '/') or not exists:
+    if device_path in (None, "/") or not exists:
         raise ValueError("%s not found" % str(device_path))
     linked_to = os.path.realpath(device_path)
     search_for_this_stub = os.path.basename(linked_to)
-    if device_path.count('/') > 3 and linked_to.count('/') <= 3:
-        return is_this_a_disk(linked_to, insist_on_this_existence_state=insist_on_this_existence_state)
-    elif deduce_partno(device_path) in (None, '') and search_for_this_stub.startswith('mmc'):
+    if device_path.count("/") > 3 and linked_to.count("/") <= 3:
+        return is_this_a_disk(
+            linked_to, insist_on_this_existence_state=insist_on_this_existence_state
+        )
+    elif deduce_partno(device_path) in (None, "") and search_for_this_stub.startswith(
+        "mmc"
+    ):
         return True
-    elif search_for_this_stub.startswith('mmc'):
-        if ('p' in search_for_this_stub[-4:-1]) \
-        and search_for_this_stub[-1].isdigit():
+    elif search_for_this_stub.startswith("mmc"):
+        if ("p" in search_for_this_stub[-4:-1]) and search_for_this_stub[-1].isdigit():
             return False
         else:
             return True
-    elif len(search_for_this_stub) >= 2 and search_for_this_stub[1] == 'd':
-        if deduce_partno(device_path) not in (None, ''):
+    elif len(search_for_this_stub) >= 2 and search_for_this_stub[1] == "d":
+        if deduce_partno(device_path) not in (None, ""):
             return False
         else:
             return True
     elif os.path.isdir(device_path):
         raise ValueError("%s is a directory, not a device")
-    elif 'zram' in os.path.basename(device_path):
+    elif "zram" in os.path.basename(device_path):
         return False
     else:
         raise ValueError("I do not know if %s is a disk or not" % device_path)
@@ -169,17 +176,24 @@ def fix_order_of_disk_partitiontable_entries(disk_path):
 
     """
     if not os.path.exists(disk_path):
-        raise ValueError("Please specify an existent disk whose partition table you want \
-me to sort; {disk_path} does not exist".format(disk_path=disk_path))
-    retcode, stdout_txt, stderr_txt = call_binary(['fdisk', disk_path], '''x
+        raise ValueError(
+            "Please specify an existent disk whose partition table you want \
+me to sort; {disk_path} does not exist".format(
+                disk_path=disk_path
+            )
+        )
+    retcode, stdout_txt, stderr_txt = call_binary(
+        ["fdisk", disk_path],
+        """x
 f
 w
 q
-''')
+""",
+    )
     if retcode != 0:
-        raise PartitionTableReorderingError(\
-                            "Failed to sort {disk_path}'s partitions".format(\
-                                                         disk_path=disk_path))
+        raise PartitionTableReorderingError(
+            "Failed to sort {disk_path}'s partitions".format(disk_path=disk_path)
+        )
     return (retcode, stdout_txt, stderr_txt)
 
 
@@ -210,21 +224,32 @@ def diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
         * Add more TODOs
 
     """
-    retcode, stdout_txt, stderr_txt = call_binary(param_lst=['sfdisk', '-l', disk_path], input_str=None)
+    retcode, stdout_txt, stderr_txt = call_binary(
+        param_lst=["sfdisk", "-l", disk_path], input_str=None
+    )
     if retcode != 0:
         print(stderr_txt)
         print("Warning -- diskid_sizein_...et. - nonzero retcode")
-    disk_length_in_bytes, lab1, disk_length_in_sectors, lab2 = stdout_txt.split('\n')[0].split(' ')[-4:]
-    disk_id = [r for r in stdout_txt.split('\n') if ': 0x' in r][0].split(' ')[-1]
-#    just_fdisk_op = subprocess.run(['fdisk', '-l', disk_path], \
-#                                stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
-#    (disk_length_in_bytes, lab1, disk_length_in_sectors, lab2) = \
-#                                just_fdisk_op.stdout.decode('UTF-8').split('\n')[0].split(' ')[-4:]
-#    disk_id = [r for r in just_fdisk_op.stdout.decode('UTF-8').split('\n') if ': 0x' in r][0].split(' ')[-1]
+    disk_length_in_bytes, lab1, disk_length_in_sectors, lab2 = stdout_txt.split("\n")[
+        0
+    ].split(" ")[-4:]
+    disk_id = [r for r in stdout_txt.split("\n") if ": 0x" in r][0].split(" ")[-1]
+    #    just_fdisk_op = subprocess.run(['fdisk', '-l', disk_path], \
+    #                                stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
+    #    (disk_length_in_bytes, lab1, disk_length_in_sectors, lab2) = \
+    #                                just_fdisk_op.stdout.decode('UTF-8').split('\n')[0].split(' ')[-4:]
+    #    disk_id = [r for r in just_fdisk_op.stdout.decode('UTF-8').split('\n') if ': 0x' in r][0].split(' ')[-1]
     sector_size = int(disk_length_in_bytes) / int(disk_length_in_sectors)
-    assert int(sector_size) == float(sector_size), "Sector size should be an integer. My disk-analyzing script appears to be broken."
+    assert int(sector_size) == float(
+        sector_size
+    ), "Sector size should be an integer. My disk-analyzing script appears to be broken."
     del lab1, lab2
-    return (disk_id, int(disk_length_in_bytes), int(disk_length_in_sectors), int(sector_size))
+    return (
+        disk_id,
+        int(disk_length_in_bytes),
+        int(disk_length_in_sectors),
+        int(sector_size),
+    )
 
 
 def set_disk_id(node, new_diskid):
@@ -249,20 +274,26 @@ def set_disk_id(node, new_diskid):
         * Add more TODOs
 
     """
-    retcode, stdout_txt, stderr_txt = call_binary(['fdisk',node], '''x
+    retcode, stdout_txt, stderr_txt = call_binary(
+        ["fdisk", node],
+        """x
 i
 {new_diskid}
 r
 w
-'''.format(new_diskid=new_diskid)) 
-    os.system('''sync;sync;sync;partprobe {node}; sync;sync;sync'''.format(node=node))
+""".format(
+            new_diskid=new_diskid
+        ),
+    )
+    os.system("""sync;sync;sync;partprobe {node}; sync;sync;sync""".format(node=node))
     resultant_id = diskid_sizeinbytes_sizeinsectors_and_sectorsize(node)[0]
     if resultant_id != new_diskid:
         print(retcode)
         print(stdout_txt)
         print(stderr_txt)
-        raise DiskIDSettingFailureError("Failed to set disk ID of {node} to {id}".format(
-            node=node, id=new_diskid))
+        raise DiskIDSettingFailureError(
+            "Failed to set disk ID of {node} to {id}".format(node=node, id=new_diskid)
+        )
 
 
 def sfdisk_output(node):
@@ -296,11 +327,15 @@ def sfdisk_output(node):
         * Add more TODOs
 
     """
-    retcode, stdout_txt, stderr_txt = call_binary(param_lst=['sfdisk', '-J', node], input_str=None)
+    retcode, stdout_txt, stderr_txt = call_binary(
+        param_lst=["sfdisk", "-J", node], input_str=None
+    )
     if retcode != 0:
         print("sfdisk_output({node}) ==>".format(node=node))
         print(stderr_txt)
     return json.loads(stdout_txt)
+
+
 #    my_oput = subprocess.run(['sfdisk', '-J', node], stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
 #    res = json.loads(my_oput.stdout.decode('UTF-8'))
 #    return res
@@ -326,11 +361,11 @@ def all_disk_paths():
 
     """
     all_dev_entries = []
-    with open('/proc/partitions', 'r') as f:
-        s = f.read().split('\n')
-        for r in [r.split(' ')[-1] for r in s]:
-            pth = os.path.join('/dev/', r)
-            if r != '' and os.path.exists(pth) and is_this_a_disk(pth):
+    with open("/proc/partitions", "r") as f:
+        s = f.read().split("\n")
+        for r in [r.split(" ")[-1] for r in s]:
+            pth = os.path.join("/dev/", r)
+            if r != "" and os.path.exists(pth) and is_this_a_disk(pth):
                 all_dev_entries.append(pth)
     return all_dev_entries
 
@@ -355,7 +390,7 @@ def namedtuples_for_all_disks():
     Todo:
         * Add more TODOs.
 
-    """   
+    """
     disks = []
     for devpath in all_disk_paths():
         disks.append(disk_namedtuple(devpath))
@@ -388,22 +423,28 @@ def enhance_the_sfdisk_output(node, json_rec):
         * Add more TODOs.
 
     """
-    disk_id, node_size_in_bytes, node_size_in_sectors, sector_size = \
-        diskid_sizeinbytes_sizeinsectors_and_sectorsize(node)
-    json_rec['partitiontable']['sector_size'] = sector_size
-    json_rec['partitiontable']['size_in_bytes'] = node_size_in_bytes
-    json_rec['partitiontable']['size_in_sectors'] = node_size_in_sectors
-    json_rec['partitiontable']['disk_label'] = json_rec['partitiontable']['label']
-    del json_rec['partitiontable']['label']
-    json_rec['partitiontable']['disk_id'] = disk_id
-    for disk_searchby in ('id', 'label', 'partuuid', 'path', 'uuid'):
-        json_rec['partitiontable'][disk_searchby] = \
-                                    devdiskbyxxxx_path(node,
-                                                       disk_searchby)
-        for partition_rec in json_rec['partitiontable']['partitions']:
-            for partition_searchby in ('id', 'label', 'partuuid', 'path', 'uuid'):
-                partition_rec[partition_searchby] = devdiskbyxxxx_path(partition_rec['node'], partition_searchby)
-    json_rec['partitiontable']['node'] = node
+    (
+        disk_id,
+        node_size_in_bytes,
+        node_size_in_sectors,
+        sector_size,
+    ) = diskid_sizeinbytes_sizeinsectors_and_sectorsize(node)
+    json_rec["partitiontable"]["sector_size"] = sector_size
+    json_rec["partitiontable"]["size_in_bytes"] = node_size_in_bytes
+    json_rec["partitiontable"]["size_in_sectors"] = node_size_in_sectors
+    json_rec["partitiontable"]["disk_label"] = json_rec["partitiontable"]["label"]
+    del json_rec["partitiontable"]["label"]
+    json_rec["partitiontable"]["disk_id"] = disk_id
+    for disk_searchby in ("id", "label", "partuuid", "path", "uuid"):
+        json_rec["partitiontable"][disk_searchby] = devdiskbyxxxx_path(
+            node, disk_searchby
+        )
+        for partition_rec in json_rec["partitiontable"]["partitions"]:
+            for partition_searchby in ("id", "label", "partuuid", "path", "uuid"):
+                partition_rec[partition_searchby] = devdiskbyxxxx_path(
+                    partition_rec["node"], partition_searchby
+                )
+    json_rec["partitiontable"]["node"] = node
     return json_rec
 
 
@@ -434,13 +475,15 @@ def disk_namedtuple(node):
         * Add more TODOs.
 
     """
-    if node in (None, '/', '') or \
-                                    not os.path.exists(node) or \
-                                    os.path.isdir(node):
-        raise ValueError('Cannot get disk record -- %s not found' % str(node))
+    if node in (None, "/", "") or not os.path.exists(node) or os.path.isdir(node):
+        raise ValueError("Cannot get disk record -- %s not found" % str(node))
     json_rec = sfdisk_output(node)
-    _ = enhance_the_sfdisk_output(node, json_rec)  # Changes are saved to json_rec
-    res = json.loads(json.dumps(json_rec), object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
+    # Changes are saved to json_rec
+    _ = enhance_the_sfdisk_output(node, json_rec)
+    res = json.loads(
+        json.dumps(json_rec),
+        object_hook=lambda d: namedtuple("X", d.keys())(*d.values()),
+    )
     return res
 
 
@@ -456,15 +499,16 @@ class Disk:
 
     Returns:
         None.
-        
+
     Raises:
         ValueError: If node is invalid.
-    
+
     Todo:
         * Add more TODOs
         * Add proper read- and write-locking.
 
     """
+
     def __init__(self, node):
         self._user_specified_node = node
         self._node = os.path.realpath(self._user_specified_node)
@@ -474,8 +518,13 @@ class Disk:
         self.update()
 
     def __str__(self):
-        return """fisk_path=%s  id=%s device=%s  unit=%s  partitions:%d""" % \
-            (self.node, self.id, self.device, self.unit, len(self.partitions))
+        return """fisk_path=%s  id=%s device=%s  unit=%s  partitions:%d""" % (
+            self.node,
+            self.id,
+            self.device,
+            self.unit,
+            len(self.partitions),
+        )
 
     def __repr__(self):
         return f'Disk(node="%s")' % self.node
@@ -493,7 +542,7 @@ class Disk:
             None.
 
         """
-        d = self.node if os.path.exists(self.node) else ''
+        d = self.node if os.path.exists(self.node) else ""
         os.system("sync;sync;sync;partprobe %s;sync;sync;sync" % d)
 
     def update(self, partprobe=True):
@@ -509,8 +558,9 @@ class Disk:
             None
 
         """
-#        print("Initializing Disk(%s)" % self.__user_specified_node)
+        #        print("Initializing Disk(%s)" % self.__user_specified_node)
         from my.disktools.partitions import DiskPartition
+
         if partprobe:
             self.partprobe()
         self.__cache = disk_namedtuple(self.node)
@@ -537,13 +587,13 @@ class Disk:
     @disk_id.setter
     def disk_id(self, value):
         _ = int(value, 16)
-        if len(value) != 10 or value[:2] != '0x':
+        if len(value) != 10 or value[:2] != "0x":
             raise ValueError("%s is an invalid disk id string" % value)
         try:
             set_disk_id(self.node, value)
         finally:
             self.update()
-        assert(self._disk_id == value)
+        assert self._disk_id == value
 
     @disk_id.deleter
     def disk_id(self):
@@ -591,8 +641,8 @@ class Disk:
     @property
     def unit(self):
         """str: the human-readable name of the unit of measurement that
-            fdisk, sfdisk, etc. will use when reading and writing the
-            settings for the disk partitions. Probably 'sector'."""
+        fdisk, sfdisk, etc. will use when reading and writing the
+        settings for the disk partitions. Probably 'sector'."""
         return self._unit
 
     @unit.setter
@@ -619,7 +669,7 @@ class Disk:
     @property
     def partitions(self):
         """list[] of DiskPartition records: All the partitions
-            that belong to this disk."""
+        that belong to this disk."""
         return self._partitions
 
     @partitions.setter
@@ -660,6 +710,7 @@ class Disk:
     def overlapping(self):
         """Tell you if this disk's partitions overlap."""
         from my.disktools.partitions import overlapping
+
         return overlapping(self.node)
 
     @overlapping.setter
@@ -670,8 +721,15 @@ class Disk:
     def overlapping(self):
         raise AttributeError("Not permitted")
 
-    def add_partition(self, partno=None, start=None, end=None, fstype=None, \
-                                            debug=False, size_in_MiB=None):
+    def add_partition(
+        self,
+        partno=None,
+        start=None,
+        end=None,
+        fstype=None,
+        debug=False,
+        size_in_MiB=None,
+    ):
         """Add a disk partition to this disk.
 
         I, a class that wraps around the specified disk, will use fdisk/sfdisk
@@ -709,6 +767,7 @@ class Disk:
 
         """
         from my.disktools.partitions import delete_partition, partition_exists
+
         if partno is None:
             if len(self.partitions) == 0:
                 partno = 1
@@ -717,45 +776,74 @@ class Disk:
         if partno < 1 or partno > 63:
             raise ValueError("The specified partno %d is too low/high" % partno)
         if partno in [r.partno for r in self.partitions]:
-            raise ValueError("Partition %d exists already. I cannot create two of them." % partno)
+            raise ValueError(
+                "Partition %d exists already. I cannot create two of them." % partno
+            )
         if partno >= 5:
             pass
-        else:  # If partition# is 2, 3, or 4, we'll run some 'start'/'end' checks.
+        # If partition# is 2, 3, or 4, we'll run some 'start'/'end' checks.
+        else:
             if start is None:
                 try:
-                    previous_partition = [r for r in self.partitions if r.partno == partno - 1][0]
+                    previous_partition = [
+                        r for r in self.partitions if r.partno == partno - 1
+                    ][0]
                     start = previous_partition.end + 1
                 except IndexError:
                     start = None
             if partno > 1 and start is None:
                 raise ValueError(
-                    "Specify start sector of partition #%d of %s" % \
-                                            (partno, self.node))
+                    "Specify start sector of partition #%d of %s" % (partno, self.node)
+                )
             if end is None and size_in_MiB is None:
                 try:
-                    end = [r for r in self.partitions if r.partno == partno + 1][0].start - 1
+                    end = [r for r in self.partitions if r.partno == partno + 1][
+                        0
+                    ].start - 1
                 except IndexError:
                     pass
-        if partno >= 5 and [] == [p for p in self.partitions if p.fstype == _FS_EXTENDED]:
-            raise WeNeedAnExtendedPartitionError("Please create an extended partition first.")
+        if partno >= 5 and [] == [
+            p for p in self.partitions if p.fstype == _FS_EXTENDED
+        ]:
+            raise WeNeedAnExtendedPartitionError(
+                "Please create an extended partition first."
+            )
         try:
-            add_partition(self.node, partno=partno, start=start, end=end, fstype=fstype, debug=debug, size_in_MiB=size_in_MiB)
-        except (PartitionsOverlapError, StartEndAssBackwardsError, \
-                MissingPriorPartitionError, PartitionWasNotCreatedError, \
-                ValueError, ExistentPriorPartitionError) as e:
+            add_partition(
+                self.node,
+                partno=partno,
+                start=start,
+                end=end,
+                fstype=fstype,
+                debug=debug,
+                size_in_MiB=size_in_MiB,
+            )
+        except (
+            PartitionsOverlapError,
+            StartEndAssBackwardsError,
+            MissingPriorPartitionError,
+            PartitionWasNotCreatedError,
+            ValueError,
+            ExistentPriorPartitionError,
+        ) as e:
             if self.overlapping and type(e) is not PartitionsOverlapError:
-                e = PartitionsOverlapError("Changing exception from %s to PartitionsOverlapError" % str(e))
+                e = PartitionsOverlapError(
+                    "Changing exception from %s to PartitionsOverlapError" % str(e)
+                )
             delete_partition(self.node, partno)
             raise e
         else:
             if not partition_exists(self.node, partno):
                 print("Partition creation failed... and I don't know why.")
-                raise PartitionWasNotCreatedError("Failed to create partition #%d for %s" % (partno, self.node))
+                raise PartitionWasNotCreatedError(
+                    "Failed to create partition #%d for %s" % (partno, self.node)
+                )
         finally:
             self.update()
 
     def delete_all_partitions(self):
         from my.disktools.partitions import delete_all_partitions
+
         """Delete all partitions that I, a disk, contain.
 
         Note:
@@ -796,13 +884,17 @@ class Disk:
 
         """
         from my.disktools.partitions import delete_partition, partition_exists
+
         if partition_exists(self.node, partno):
             try:
                 delete_partition(self.node, partno)
             finally:
                 self.update(partprobe=update)
         else:
-            print("No need to delete partition #%d from %s --- that partition does not exist" % (partno, self.node))
+            print(
+                "No need to delete partition #%d from %s --- that partition does not exist"
+                % (partno, self.node)
+            )
 
     def dump(self):
         """Derive information about me and my partitions.
@@ -817,14 +909,20 @@ class Disk:
             :obj:`str`: Human-readable info dump.
 
         """
-        outtxt = '''label: {disk_label}
+        outtxt = """label: {disk_label}
 label-id: {disk_id}
 device: {node}
 unit: sectors
 
-'''.format(disk_label=self.disk_label, disk_id=self.disk_id,
-                     node=self.node)
+""".format(
+            disk_label=self.disk_label, disk_id=self.disk_id, node=self.node
+        )
         for p in self.partitions:
-            outtxt += '''%-10s: start=%12d, size=%12d, type=%s
-''' % (p.node, p.start, p.size, p.fstype)
+            outtxt += """%-10s: start=%12d, size=%12d, type=%s
+""" % (
+                p.node,
+                p.start,
+                p.size,
+                p.fstype,
+            )
         return outtxt

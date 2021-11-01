@@ -13,6 +13,10 @@ Example:
     ...or...
         $ python3 -m unittest test.test_disktools.test_Disk_class.TestCreateDeliberatelyOverlappingPartitions
 
+    To reformat::
+
+        $ cd .../src && black *.py */*.py */*/*.py */*/*/*.py */*/*/*/*.py
+
 Todo:
     * QQQ Finish me QQQ
     * You have to also use ``sphinx.ext.todo`` extension
@@ -23,7 +27,7 @@ Todo:
 """
 
 # from my.disktools import *
-'''
+"""
 lst = get_list_of_all_disks()
 unmatched_devs = []
 for line in [t for t in txt.split('\n')]:
@@ -32,18 +36,22 @@ for line in [t for t in txt.split('\n')]:
     and os.path.exists(os.path.join('/dev', dev)) \
     and dev not in ([os.path.basename(p.node) for p in d.partitions]):
         unmatched_devs.append(dev)
-'''
+"""
+
+# import os
+# import sys
+
+# from my.fructify import fructify_me
+
 
 import getopt
-#import os
-#import sys
-
-#from my.fructify import fructify_me
 
 
 def main():
     print("FOFTA --- OS backup and migration tool")
     getopt.getopt
+
+
 #     outputimage_serial_number = '''$(printf "%08x" 0x$(dd if=/dev/urandom bs=1 count=200 2>/dev/null | tr -dc 'a-f0-9' | cut -c-8))'''
 #     fourdig_serno = outputimage_serial_number[-4:]
 #     boot_partition_label = "ambn{fourdig_serno}boot".format(fourdig_serno)
@@ -75,5 +83,6 @@ def main():
 #     os.system('''cd "{cwd}"'''.format(cwd=cwd))
 #     sys.exit(0)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
