@@ -289,9 +289,9 @@ w
     os.system("""sync;sync;sync;partprobe {disk_path}; sync;sync;sync""".format(disk_path=disk_path))
     resultant_id = diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)[0]
     if resultant_id != new_diskid:
-        print(retcode)
-        print(stdout_txt)
-        print(stderr_txt)
+        # print(retcode)
+        # print(stdout_txt)
+        # print(stderr_txt)
         raise DiskIDSettingFailureError(
             "Failed to set disk ID of {disk_path} to {id}".format(disk_path=disk_path, id=new_diskid)
         )
@@ -331,9 +331,9 @@ def sfdisk_output(disk_path):
     retcode, stdout_txt, stderr_txt = call_binary(
         param_lst=["sfdisk", "-J", disk_path], input_str=None
     )
-    if retcode != 0:
-        print("sfdisk_output({disk_path}) ==>".format(disk_path=disk_path))
-        print(stderr_txt)
+    # if retcode != 0:
+    #     print("sfdisk_output({disk_path}) ==>".format(disk_path=disk_path))
+    #     print(stderr_txt)
     return json.loads(stdout_txt)
 
 
