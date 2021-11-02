@@ -495,7 +495,7 @@ def get_disk_partition_table(disk_path):
         param_lst=["sfdisk", "-d", disk_path], input_str=None
     )
     if retcode != 0:
-        print(stderr_txt)
+        # print(stderr_txt)
         raise PartitionAttributeReadFailureError(
             "Unable to retrieve disk partitiontable of %s" % disk_path
         )
@@ -614,8 +614,8 @@ disk_path=%s partno=%d fieldno=%d"
         param_lst=["sfdisk", "-f", disk_path], input_str=new_txt
     )
     if retcode != 0:
-        print(stdout_txt)
-        print(stderr_txt)
+        # print(stdout_txt)
+        # print(stderr_txt)
         raise PartitionAttributeWriteFailureError(
             "Failed to change field {fieldno} of partno#{partno} of {disk_path} from {oldval} to {newval}".format(
                 fieldno=fieldno,
