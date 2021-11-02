@@ -358,7 +358,7 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.assertTrue(partition_exists(self.disk.node, 5))
         self.assertTrue(partition_exists(self.disk.node, 6))
 
-    def testDeleteNonhiestLogical(self):
+    def testDeleteNonhighestLogical(self):
         self.disk.add_partition(5, size_in_MiB=100)
         self.disk.add_partition(6, size_in_MiB=100)
         self.disk.delete_partition(6)
