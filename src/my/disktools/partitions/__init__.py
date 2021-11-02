@@ -982,7 +982,7 @@ def delete_partition(disk_path, partno):
     """
     if partno >= 5 and partition_exists(disk_path, partno + 1):
         raise PartitionDeletionError(
-            "Because partition #%d of %s exists, I cannot create #%d. \
+            "Because partition #%d of %s exists, I cannot delete #%d. \
 Logical partitions cannot be removed without screwing up their order. \
 Sorry."
             % (partno + 1, disk_path, partno)
