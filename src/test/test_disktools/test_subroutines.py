@@ -86,10 +86,10 @@ class TestIsThisADisk_TWO(unittest.TestCase):
     def testIfExistenceMakesADifference(self):
         for i in ("/dev/mmcblk0", "/dev/mmcblk1", "/dev/sda", "/dev/sdb", "/dev/sdp"):
             self.assertTrue(
-                is_this_a_disk(device_path=i, insist_on_this_existence_state=True)
+                is_this_a_disk(node=i, insist_on_this_existence_state=True)
             )
             self.assertTrue(
-                is_this_a_disk(device_path=i, insist_on_this_existence_state=True)
+                is_this_a_disk(node=i, insist_on_this_existence_state=True)
             )
         for i in (
             "/dev/mmcblk0p1",
@@ -101,10 +101,10 @@ class TestIsThisADisk_TWO(unittest.TestCase):
             "/dev/sdp5",
         ):
             self.assertFalse(
-                is_this_a_disk(device_path=i, insist_on_this_existence_state=True)
+                is_this_a_disk(node=i, insist_on_this_existence_state=True)
             )
             self.assertFalse(
-                is_this_a_disk(device_path=i, insist_on_this_existence_state=True)
+                is_this_a_disk(node=i, insist_on_this_existence_state=True)
             )
 
 
