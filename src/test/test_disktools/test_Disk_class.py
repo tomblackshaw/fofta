@@ -55,6 +55,7 @@ class TestDeleteAllPartitions(unittest.TestCase):
         self.disk.add_partition()
 
 
+
 class TestCreate12123(unittest.TestCase):
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
@@ -72,6 +73,8 @@ class TestCreate12123(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.disk.add_partition(partno=2, size_in_MiB=100)
         self.disk.add_partition(partno=3, size_in_MiB=100)
+
+
 
 
 class TestCreateFullThenAddOne(unittest.TestCase):
