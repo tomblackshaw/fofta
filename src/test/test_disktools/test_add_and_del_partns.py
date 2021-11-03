@@ -21,6 +21,7 @@ from my.disktools.partitions import (
     overlapping,
 )
 from my.exceptions import PartitionWasNotCreatedError
+from my.globals import call_binary
 
 
 class TestSoloDeleteAll(unittest.TestCase):
@@ -168,7 +169,7 @@ class TestCreateAndDeleteFourPartitions(unittest.TestCase):
                 fstype="83",
             )  # , debug, size_in_MiB)
             wozzit_A = partition_exists(MY_TESTDISK_PATH, partno)
-            os.system("sync;sync;sync; partprobe; sync;sync;sync")
+            call_binary(['partprobe']); call_binary(['sync'])
             wozzit_B = partition_exists(MY_TESTDISK_PATH, partno)
             self.assertTrue(wozzit_B)
             self.assertTrue(wozzit_A)
