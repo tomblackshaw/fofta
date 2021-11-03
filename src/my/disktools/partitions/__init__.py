@@ -17,12 +17,12 @@ Disk() is not threadsafe, but threadsafeDisk() is.
 
 Attributes:
 
-    _FS_DEFAULT (:obj:`str`): The code that fdisk uses for an ext4fs partition.
-        This is a string, not an integer, for flexibility's sake.
+    _FS_DEFAULT (:obj:`str`): The two- or three-char code that fdisk utilizes
+        to indicate an ext4fs partition.
 
-    _FS_EXTENDED (:obj:`str`): The code that fdisk uses for an extended
-        partition.. This is a string, not an integer, for flexibility's sake.
-
+    _FS_EXTENDED (:obj:`str`): The two- or three-char code that fdisk utilizes
+        to indicate an external partition.
+        
 Todo:
     * Better TODO lists
 
@@ -719,7 +719,7 @@ def add_partition_SUB(
         debug_str = ""
     else:
         debug_str = " >/dev/null 2>/dev/null"
-    if with_partno_Q:
+    if with_partno_Q: # TODO: Replace os.system() with call_binary()
         res = os.system(
             """echo "p\nn\n%s\n%s\n%s\n%s\nw" | fdisk %s %s"""
             % (
