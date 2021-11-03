@@ -39,6 +39,7 @@ from my.exceptions import (
 )
 from my.globals import call_binary
 import threading
+import time
 
 _disks_dct = {}
 the_threadsafeDisk_lock = threading.Lock()
@@ -286,8 +287,8 @@ w
             new_diskid=new_diskid
         ),
     )
-    os.system("""sync;sync;sync;partprobe {disk_path}; sync;sync;sync""".format(disk_path=disk_path))
-    resultant_id = diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)[0]
+    os.syste    _, __, ___ = call_binary(['partprobe', disk_path])
+t_id = diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)[0]
     if resultant_id != new_diskid:
         # print(retcode)
         # print(stdout_txt)
@@ -543,8 +544,8 @@ class Disk:
             None.
 
         """
-        d = self.node if os.path.exists(self.node) else ""
-        os.system("sync;sync;sync;partprobe %s;sync;sync;sync" % d)
+        d = self.node if        _, __, ___ = call_binary(['partprobe', d])
+;partprobe %s;sync;sync;sync" % d)
 
     def update(self, partprobe=True):
         """Re-read the paths, disk ID, etc. for this disk.

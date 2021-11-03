@@ -399,13 +399,13 @@ def delete_all_partitions(partition_path):
         PartitionDeletionError: Failed to delete partition `disk_path`.
 
     """
-    realpartition_path = os.path.realpath(partition_path)
+    realpartition_path = os.path.realpath(partition_path) # TODO: Replace os.system() with call_binary()
     os.system(
         """sfdisk -d {partition_path}| grep -vx "{partition_path}.*[0-9] : .*"| sfdisk -f {partition_path} 2>/dev/null >/dev/null""".format(
             partition_path=realpartition_path
         )
     )
-    os.system("partprobe {partition_path}".format(partition_path=realpartition_path))
+    call_binary(['partprobe',realpartition_path])
 
 
 def partition_exists(disk_path, partno):
@@ -990,10 +990,11 @@ Sorry."
         )
     res = os.system(
         """sfdisk %s --del %d > /dev/null 2> /dev/null""" % (disk_path, partno)
-    )
-    if partition_exists(disk_path, partno):
-        os.system("sync;sync;sync;partprobe;sync;sync;sync")
-    if partition_exists(disk_path, partno):
+    )# TODO: Replace os.system() with call_binary()
+    try:
+        pause_until_true(timeout=15, test_func=(lambda x=disk_path, y=partno: not partition_exists(x,y)),
+                                      nudge_func=(lambda x=disk_path: call_binary(['partprobe', x])))
+    except TimeoutError:
         raise PartitionDeletionError(
             "Failed to delete partition #{partno} to {disk_path}".format(
                 partno=partno, disk_path=disk_path
