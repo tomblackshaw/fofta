@@ -25,6 +25,9 @@ Attributes:
         
 Todo:
     * Better TODO lists
+    * Replace os.system() with call_binary()
+
+# TODO: Replace os.system() with call_binary()
 
 .. _Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
