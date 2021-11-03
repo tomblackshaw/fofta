@@ -26,17 +26,6 @@ Todo:
 
 """
 
-# from my.disktools import *
-"""
-lst = get_list_of_all_disks()
-unmatched_devs = []
-for line in [t for t in txt.split('\n')]:
-    dev = line.split(' ')[-1]
-    if dev != '' \
-    and os.path.exists(os.path.join('/dev', dev)) \
-    and dev not in ([os.path.basename(p.node) for p in d.partitions]):
-        unmatched_devs.append(dev)
-"""
 
 # import os
 # import sys
@@ -44,12 +33,12 @@ for line in [t for t in txt.split('\n')]:
 # from my.fructify import fructify_me
 
 
-import getopt
+#import getopt
 
 
 def main():
     print("FOFTA --- OS backup and migration tool")
-    getopt.getopt
+#    getopt.getopt
 
 
 #     outputimage_serial_number = '''$(printf "%08x" 0x$(dd if=/dev/urandom bs=1 count=200 2>/dev/null | tr -dc 'a-f0-9' | cut -c-8))'''

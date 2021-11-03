@@ -523,6 +523,9 @@ class Disk:
         self.__cache = None
         self.update()
 
+    def __repr__(self):
+        return 'Disk(node="%s")' % self.node
+
     def __str__(self):
         return """fisk_path=%s  id=%s device=%s  unit=%s  partitions:%d""" % (
             self.node,
@@ -531,9 +534,6 @@ class Disk:
             self.unit,
             len(self.partitions),
         )
-
-    def __repr__(self):
-        return f'Disk(node="%s")' % self.node
 
     def partprobe(self):
         """Run partprobe binary on my own disk (self.node).

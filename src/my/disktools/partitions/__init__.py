@@ -99,7 +99,7 @@ class DiskPartition:
             )
 
     def __repr__(self):
-        return f'DiskPartition(node="%s")' % self.node
+        return 'DiskPartition(node="%s")' % self.node
 
     def __str__(self):
         return (
@@ -433,9 +433,8 @@ def NEW_partition_exists(disk_path, partno):
     if not os.path.exists(disk_path):
         raise FileNotFoundError("Disk %s not found" % disk_path)
     disk_path = os.path.realpath(disk_path)
-    for t in ' ' + string.ascii_lowercase:
-        dev_str = ('%s%s%d' % (disk_path, t, partno)).replace(' ','')
-#        print(dev_str)
+    for t in ('', 'p'):
+        dev_str = ('%s%s%d' % (disk_path, t, partno))
         if os.path.exists(dev_str):
             return True
     return False        
@@ -470,8 +469,8 @@ def partition_exists(disk_path, partno):
 disk_path=%s
 partno=%d
 fullpartitiondev=$(sfdisk -d $disk_path | grep -x "$disk_path.*$partno :.*" | head -n1 | cut -d' ' -f1)
-[    ''' % (disk_path, partno)) 
- TODO: Replace os.system() with call_binary()
+[ -e "$fullpartitiondev" ] && exit 0 || exit 1
+    ''' % (disk_path, partno)) 
     # if resA != resB:
     #     raise SystemError( "resA and resB differ. You suck at programming.")
     if res == 0:
@@ -531,7 +530,7 @@ def get_disk_partition_table(disk_path):
 
     """
     disk_path = os.path.realpath(disk_path)
-    retcode, stdout_txt, stderr_txt = call_binary(
+    retcode, stdout_txt, _stderr_txt = call_binary(
         param_lst=["sfdisk", "-d", disk_path], input_str=None
     )
     if retcode != 0:
@@ -568,10 +567,10 @@ def get_disk_partition_table_line(disk_path, partno):
             if sfdisk_op_text_lst[i].startswith(disk_path)
             and sfdisk_op_text_lst[i].find("%d : " % partno) >= 0
         ][0]
-    except IndexError:
+    except IndexError as e:
         raise PartitionAttributeReadFailureError(
             "Failed to retrieve info on partition#%d from %s" % (partno, disk_path)
-        )
+        ) from e
     return sfdisk_op_text_lst[sfdisk_op_line_number]
 
 
@@ -650,7 +649,7 @@ disk_path=%s partno=%d fieldno=%d"
     )
     old_txt = get_disk_partition_table(disk_path)
     new_txt = old_txt.replace(oldcurr_line, newcurr_line)
-    retcode, stdout_txt, stderr_txt = call_binary(
+    retcode, _stdout_txt, _stderr_txt = call_binary(
         param_lst=["sfdisk", "-f", disk_path], input_str=new_txt
     )
     if retcode != 0:
@@ -689,12 +688,12 @@ def set_partition_fstype(disk_path, partno, fstype):
     """
     try:
         set_disk_partition_field_value(disk_path, partno, 2, fstype)
-    except PartitionTableReorderingError:
+    except PartitionTableReorderingError as e:
         raise PartitionAttributeWriteFailureError(
             "Unable to change fstype of partno#{partno} of {disk_path}".format(
                 partno=partno, disk_path=disk_path
             )
-        )
+        ) from e
 
 
 def add_partition_SUB(
@@ -758,7 +757,7 @@ def add_partition_SUB(
         debug_str = ""
     else:
         debug_str = " >/dev/null 2>/dev/null"
-    if with_partno_Q: # TODO: Replace os.system() with call_binary()
+    if with_partno_Q: 
         res = os.system(
             """echo "p\nn\n%s\n%s\n%s\n%s\nw" | fdisk %s %s"""
             % (
@@ -768,7 +767,7 @@ def add_partition_SUB(
                 "" if not end_str else end_str,
                 disk_path,
                 debug_str,
-            )# TODO: Replace os.system() with call_binary()
+            )
         )
     else:
         res = os.system(
@@ -779,7 +778,7 @@ def add_partition_SUB(
                 "" if not end_str else end_str,
                 disk_path,
                 debug_str,
-            )# TODO: Replace os.system() with call_binary()
+            )
         )
     call_binary(['partprobe',disk_path])
     res += os.system(
@@ -788,7 +787,7 @@ def add_partition_SUB(
             partno=partno,
             fstype=fstype,
             debug="" if debug else "> /dev/null 2> /dev/null",
-        )# TODO: Replace os.system() with call_binary()
+        )
     )
     return res
 
@@ -896,11 +895,11 @@ def add_partition(
     try:
         pause_until_true(timeout=15, test_func=(lambda x=disk_path, y=partno: partition_exists(x,y)),
                                       nudge_func=(lambda x=disk_path: call_binary(['partprobe', x])))
-    except TimeoutError:
+    except TimeoutError as e:
         raise PartitionWasNotCreatedError(
             "Failed to add partition #{partno} to {disk_path} (res={res})".format(
                 partno=partno, disk_path=disk_path, res=res)
-            )
+            ) from e
     del res
     return 0  # Throw away res if the partition was successfully created
 
@@ -1028,17 +1027,17 @@ Logical partitions cannot be removed without screwing up their order. \
 Sorry."
             % (partno + 1, disk_path, partno)
         )
-    res =    )
-l 2> /dev/null""" % (disk_path, partno)
-    )# TODO: Replace os.system() with call_binary()
+    res = os.system(
+        """sfdisk %s --del %d > /dev/null 2> /dev/null""" % (disk_path, partno)
+    )
     try:
         pause_until_true(timeout=15, test_func=(lambda x=disk_path, y=partno: not partition_exists(x,y)),
                                       nudge_func=(lambda x=disk_path: call_binary(['partprobe', x])))
-    except TimeoutError:
+    except TimeoutError as  e:
         raise PartitionDeletionError(
             "Failed to delete partition #{partno} to {disk_path}".format(
                 partno=partno, disk_path=disk_path
             )
-        )
+        ) from e
     del res
     return 0  # Throw away res if the partition was successfully deleted
