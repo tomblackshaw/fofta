@@ -367,7 +367,7 @@ def all_disk_paths():
 
     """
     all_dev_entries = []
-    with open("/proc/partitions", "r") as f:
+    with open("/proc/partitions", "r", encoding="utf-8") as f:
         s = f.read().split("\n")
         for r in [r.split(" ")[-1] for r in s]:
             pth = os.path.join("/dev/", r)
