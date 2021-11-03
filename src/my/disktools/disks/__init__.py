@@ -287,8 +287,8 @@ w
             new_diskid=new_diskid
         ),
     )
-    os.syste    _, __, ___ = call_binary(['partprobe', disk_path])
-t_id = diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)[0]
+    _, __, ___ = call_binary(['partprobe', disk_path])
+    resultant_id = diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)[0]
     if resultant_id != new_diskid:
         # print(retcode)
         # print(stdout_txt)
@@ -544,8 +544,8 @@ class Disk:
             None.
 
         """
-        d = self.node if        _, __, ___ = call_binary(['partprobe', d])
-;partprobe %s;sync;sync;sync" % d)
+        d = self.node if os.path.exists(self.node) else ""
+        _, __, ___ = call_binary(['partprobe', d])
 
     def update(self, partprobe=True):
         """Re-read the paths, disk ID, etc. for this disk.
@@ -816,7 +816,7 @@ class Disk:
                 end=end,
                 fstype=fstype,
                 debug=debug,
-                size_in_MiB=size_in_MiB,
+                size_in_MiB=size_in_MiB
             )
         except (
             PartitionsOverlapError,
@@ -834,7 +834,6 @@ class Disk:
             raise e
         else:
             if not partition_exists(self.node, partno):
-                print("Partition creation failed... and I don't know why.")
                 raise PartitionWasNotCreatedError(
                     "Failed to create partition #%d for %s" % (partno, self.node)
                 )
