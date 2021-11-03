@@ -15,8 +15,7 @@ from test import MY_TESTDISK_PATH
 import unittest
 
 from my.disktools.disks import Disk, is_this_a_disk, set_disk_id
-from my.disktools.partitions import partition_exists, _FS_EXTENDED, add_partition,\
-    delete_all_partitions
+from my.disktools.partitions import partition_exists, _FS_EXTENDED
 from my.exceptions import (
     StartEndAssBackwardsError,
     MissingPriorPartitionError,

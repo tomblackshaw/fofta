@@ -45,7 +45,7 @@ class TestCallBinary(unittest.TestCase):
         (retcode, stdin_str, stdout_str) = call_binary(["ls"])  # @UnusedVariable
         with self.assertRaises(ValueError):
             # @UnusedVariable  #pylint: disable=unbalanced-tuple-unpacking
-            here, there = call_binary(["ls"])
+            _, __ = call_binary(["ls"])
         with self.assertRaises(FileNotFoundError):
             _ = call_binary(["lsd123"])
         _ = call_binary(["ls"], None)

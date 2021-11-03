@@ -400,7 +400,7 @@ def delete_all_partitions(partition_path):
         PartitionDeletionError: Failed to delete partition `disk_path`.
 
     """
-    realpartition_path = os.path.realpath(partition_path) # TODO: Replace os.system() with call_binary()
+    realpartition_path = os.path.realpath(partition_path) 
     os.system(
         """sfdisk -d {partition_path}| grep -vx "{partition_path}.*[0-9] : .*"| sfdisk -f {partition_path} 2>/dev/null >/dev/null""".format(
             partition_path=realpartition_path
@@ -467,8 +467,8 @@ def partition_exists(disk_path, partno):
 disk_path=%s
 partno=%d
 fullpartitiondev=$(sfdisk -d $disk_path | grep -x "$disk_path.*$partno :.*" | head -n1 | cut -d' ' -f1)
-[ -e "$fullpartitiondev" ] && exit 0 || exit 1
-    ''' % (disk_path, partno)) # TODO: Replace os.system() with call_binary()
+[    ''' % (disk_path, partno)) 
+ TODO: Replace os.system() with call_binary()
     # if resA != resB:
     #     raise SystemError( "resA and resB differ. You suck at programming.")
     if res == 0:
@@ -1025,8 +1025,8 @@ Logical partitions cannot be removed without screwing up their order. \
 Sorry."
             % (partno + 1, disk_path, partno)
         )
-    res = os.system(
-        """sfdisk %s --del %d > /dev/null 2> /dev/null""" % (disk_path, partno)
+    res =    )
+l 2> /dev/null""" % (disk_path, partno)
     )# TODO: Replace os.system() with call_binary()
     try:
         pause_until_true(timeout=15, test_func=(lambda x=disk_path, y=partno: not partition_exists(x,y)),

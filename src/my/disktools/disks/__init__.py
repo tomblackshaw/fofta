@@ -276,7 +276,7 @@ def set_disk_id(disk_path, new_diskid):
         * Add more TODOs
 
     """
-    retcode, stdout_txt, stderr_txt = call_binary(
+    _, __, ___ = call_binary(
         ["fdisk", disk_path],
         """x
 i
@@ -329,7 +329,7 @@ def sfdisk_output(disk_path):
         * Add more TODOs
 
     """
-    retcode, stdout_txt, stderr_txt = call_binary(
+    _, stdout_txt, _stderr_txt = call_binary(
         param_lst=["sfdisk", "-J", disk_path], input_str=None
     )
     # if retcode != 0:
