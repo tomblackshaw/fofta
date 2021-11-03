@@ -33,6 +33,7 @@ Todo:
 from collections import namedtuple
 import json
 import os
+import string
 
 from my.disktools.both import devdiskbyxxxx_path
 from my.exceptions import (
@@ -408,7 +409,7 @@ def delete_all_partitions(partition_path):
     call_binary(['partprobe',realpartition_path])
 
 
-def partition_exists(disk_path, partno):
+def NEW_partition_exists(disk_path, partno):
     """Does this partno# exist on this disk?
 
     Note:
@@ -426,21 +427,56 @@ def partition_exists(disk_path, partno):
         True if `disk_path` exists, False if it doesn't.
 
     """
+    if not os.path.exists(disk_path):
+        raise FileNotFoundError("Disk %s not found" % disk_path)
     disk_path = os.path.realpath(disk_path)
-    res = os.system(
-        """
+    for t in ' ' + string.ascii_lowercase:
+        dev_str = ('%s%s%d' % (disk_path, t, partno)).replace(' ','')
+#        print(dev_str)
+        if os.path.exists(dev_str):
+            return True
+    return False        
+
+
+def partition_exists(disk_path, partno):
+    """Does this partno# exist on this disk?
+
+    Note:
+        None.
+
+    Args:
+        disk_path (:obj:`str`): The /dev entry of the disk in
+            question. This may be almost any /dev entry (including
+            softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
+            but I'll always deduce the real entry (probably /dev/sdX
+            or /dev/mmcblkN) and use that as my node path.
+        partno (int): The partition#.
+
+    Returns:
+        True if partition exists, False if it doesn't.
+
+    """
+    disk_path = os.path.realpath(disk_path)
+#     res, __, ___ = call_binary(['bash','-c', '''
+# disk_path=%s
+# partno=%d
+# fullpartitiondev=$(sfdisk -d $disk_path | grep -x "$disk_path.*$partno :.*" | head -n1 | cut -d' ' -f1)
+# [ -e "$fullpartitiondev" ] && exit 0 || exit 1
+#     '''% (disk_path, partno)])
+    res = os.system('''
 disk_path=%s
 partno=%d
 fullpartitiondev=$(sfdisk -d $disk_path | grep -x "$disk_path.*$partno :.*" | head -n1 | cut -d' ' -f1)
-[ -e "$fullpartitiondev" ] && return 0 || return 1
-    """
-        % (disk_path, partno)
-    )
+[ -e "$fullpartitiondev" ] && exit 0 || exit 1
+    ''' % (disk_path, partno)) # TODO: Replace os.system() with call_binary()
+    # if resA != resB:
+    #     raise SystemError( "resA and resB differ. You suck at programming.")
     if res == 0:
         return True
     else:
         return False
-
+    
+    
 
 def get_partition_fstype(disk_path, partno):
     """Get partition type -- '83', '5', ...? -- of partno# of the disk.
@@ -729,7 +765,7 @@ def add_partition_SUB(
                 "" if not end_str else end_str,
                 disk_path,
                 debug_str,
-            )
+            )# TODO: Replace os.system() with call_binary()
         )
     else:
         res = os.system(
@@ -740,15 +776,16 @@ def add_partition_SUB(
                 "" if not end_str else end_str,
                 disk_path,
                 debug_str,
-            )
+            )# TODO: Replace os.system() with call_binary()
         )
+    call_binary(['partprobe',disk_path])
     res += os.system(
         """sfdisk --part-type {disk_path} {partno} {fstype} {debug}""".format(
             disk_path=disk_path,
             partno=partno,
             fstype=fstype,
             debug="" if debug else "> /dev/null 2> /dev/null",
-        )
+        )# TODO: Replace os.system() with call_binary()
     )
     return res
 
