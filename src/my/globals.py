@@ -18,6 +18,7 @@ Todo:
 import subprocess
 import random
 import string
+import time
 
 
 def generate_random_string(length):
@@ -77,3 +78,45 @@ e.g. ['fdisk', '/dev/sda']."
         (None if res_pair[1] is None else res_pair[1].decode("UTF-8")),
     )
     return to_be_returned
+
+
+
+def pause_until_true(timeout, test_func, nudge_func=None):
+    """Pause until test_func() returns True. Run tryme_func() every 1s, if specified.
+
+    This subroutine runs test_func() once per second, starting immediately, to see
+    if it returns True yet. If it doesn't: (i) wait for one second, (ii) run the
+    nudge_func() if it was specified, and (iii) check again. If, after {timeout}
+    loops, the condition still isn't True, raise TimeoutError. Otherwise, return.
+
+    Args:
+        timeout (int): How many loops (one second each) should we do before raising
+            a TimeoutError exception?
+        test_func (func): Run this function -- probably a lambda -- to get a result.
+            If it returns True, return. Else, loop again.
+        nudge_func (func, optional): Run this function after a one-second delay, if
+            test_func() returns False.
+
+    Returns:
+        None.
+    
+    Example:
+        pause_until_true(timeout=5, test_func = lambda x: os.path.exists(x),
+                                nudge_func = lambda: call_binary(['partprobe']))
+        
+    Raises:
+        TimeoutError: After {timeout} seconds, test_func() still is returning False.
+
+    Todo:
+        * Add more TODOs
+
+    """
+    while timeout > 0 and not test_func():
+        timeout = timeout - 1
+        time.sleep(1)
+        if nudge_func:
+            nudge_func()
+    if timeout <= 0:
+        raise TimeoutError("pause_until_true() timed out")
+
+

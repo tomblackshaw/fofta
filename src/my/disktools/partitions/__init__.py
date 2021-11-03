@@ -46,8 +46,9 @@ from my.exceptions import (
     PartitionAttributeReadFailureError,
     PartitionTableReorderingError,
 )
-from my.globals import call_binary
+from my.globals import call_binary, pause_until_true
 import subprocess
+import time
 
 
 _FS_EXTENDED = "5"
@@ -852,14 +853,14 @@ def add_partition(
         res = add_partition_SUB(
             disk_path, partno, start, end, fstype, debug=debug, size_in_MiB=size_in_MiB
         )
-    if not partition_exists(disk_path, partno):
-        os.system("sync;sync;sync;partprobe;sync;sync;sync")
-    if not partition_exists(disk_path, partno):
+    try:
+        pause_until_true(timeout=15, test_func=(lambda x=disk_path, y=partno: partition_exists(x,y)),
+                                      nudge_func=(lambda x=disk_path: call_binary(['partprobe', x])))
+    except TimeoutError:
         raise PartitionWasNotCreatedError(
-            "Failed to add partition #{partno} to {disk_path}".format(
-                partno=partno, disk_path=disk_path
+            "Failed to add partition #{partno} to {disk_path} (res={res})".format(
+                partno=partno, disk_path=disk_path, res=res)
             )
-        )
     del res
     return 0  # Throw away res if the partition was successfully created
 

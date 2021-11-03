@@ -35,7 +35,7 @@ from my.exceptions import (
     DiskIDSettingFailureError,
     ExistentPriorPartitionError,
     WeNeedAnExtendedPartitionError,
-    PartitionTableReorderingError,
+    PartitionTableReorderingError, PartitionDeletionError,
 )
 from my.globals import call_binary
 import threading
@@ -727,7 +727,7 @@ class Disk:
         end=None,
         fstype=None,
         debug=False,
-        size_in_MiB=None,
+        size_in_MiB=None
     ):
         """Add a disk partition to this disk.
 
@@ -865,8 +865,11 @@ class Disk:
 
         """
         from my.disktools.partitions import delete_partition, partition_exists
-
         if partition_exists(self.node, partno):
+            if partno >= 5 and partition_exists(self.node, partno + 1):
+                raise PartitionDeletionError(
+            "Partition #%d of %s exists. I'm sorry, but I can't delete #%d w/o screwing up \
+the order of the logical partitions." % (partno + 1, self.node, partno))
             try:
                 delete_partition(self.node, partno)
             finally:

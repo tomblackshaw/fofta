@@ -28,7 +28,7 @@ import random
 import sys
 from test import MY_TESTDISK_PATH
 import unittest
-from my.globals import call_binary, generate_random_string
+from my.globals import call_binary, generate_random_string, pause_until_true
 
 
 class TestCallBinary(unittest.TestCase):
@@ -88,6 +88,27 @@ class TestCallBinary(unittest.TestCase):
             self.assertEqual(retcode, 0)
             self.assertEqual(hexstr, stdout_txt)
         del i, retcode, stdout_txt, stderr_txt
+
+
+
+class TestPauseUntilTrue(unittest.TestCase):
+    def setUp(self):
+        from my.disktools.disks import Disk
+
+        self.disk = Disk(MY_TESTDISK_PATH)
+
+    def tearDown(self):
+        self.disk.delete_all_partitions()
+
+    def testName(self):
+        random_fname = '/tmp/%s' % generate_random_string(32)
+        os.system("sleep 3; touch %s" % random_fname)
+        pause_until_true(timeout=5, test_func=(lambda x=random_fname: os.path.exists(x)))
+        with self.assertRaises(TimeoutError):
+            os.system("sleep 5; rm -f %s" % random_fname)
+            pause_until_true(timeout=2, test_func=(lambda x=random_fname: not os.path.exists(x)))
+        pause_until_true(timeout=6, test_func=(lambda x=random_fname: not os.path.exists(x)),
+                         nudge_func = lambda: os.system('sync'))
 
 
 if __name__ == "__main__":
