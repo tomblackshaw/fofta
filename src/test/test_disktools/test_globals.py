@@ -104,8 +104,8 @@ class TestPauseUntilTrue(unittest.TestCase):
         random_fname = '/tmp/%s' % generate_random_string(32)
         os.system("sleep 3; touch %s" % random_fname)
         pause_until_true(timeout=5, test_func=(lambda x=random_fname: os.path.exists(x)))
+        os.system("(sleep 5; rm -f %s) &" % random_fname)
         with self.assertRaises(TimeoutError):
-            os.system("sleep 5; rm -f %s" % random_fname)
             pause_until_true(timeout=2, test_func=(lambda x=random_fname: not os.path.exists(x)))
         pause_until_true(timeout=6, test_func=(lambda x=random_fname: not os.path.exists(x)),
                          nudge_func = lambda: os.system('sync'))
