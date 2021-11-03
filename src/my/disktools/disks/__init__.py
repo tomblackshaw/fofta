@@ -75,9 +75,13 @@ def threadsafeDisk(disk_path):
         ValueError: If the device doesn't exist, or is a softlink to a
             nonexistent file, or is a directory, or has an unfamiliar
             name structure.
+    
+    Todo:
+        * Better TODO lists
+        * Don't use global _disks_dct; do something smarter
 
     """
-    global _disks_dct
+    global _disks_dct  #pylint: disable=global-statement, global-variable-not-assigned
     try:
         the_threadsafeDisk_lock.acquire()
         if disk_path not in _disks_dct:
