@@ -7,7 +7,6 @@ Created on Oct 19, 2021
 
 Usage:-
     $ python3 -m unittest test.test_disktools.test_Disk_class
-    $ python3 -m unittest test.test_disktools.test_Disk_class.TestLogicalPartitions_TWO.testMake567AndTinkerWith2
 
 """
 import os
@@ -16,7 +15,8 @@ from test import MY_TESTDISK_PATH
 import unittest
 
 from my.disktools.disks import Disk, is_this_a_disk, set_disk_id
-from my.disktools.partitions import partition_exists, _FS_EXTENDED
+from my.disktools.partitions import partition_exists, _FS_EXTENDED, add_partition,\
+    delete_all_partitions
 from my.exceptions import (
     StartEndAssBackwardsError,
     MissingPriorPartitionError,
@@ -26,7 +26,10 @@ from my.exceptions import (
     PartitionsOverlapError,
     WeNeedAnExtendedPartitionError,
 )
+
+import time
 from my.globals import call_binary
+
 
 
 class TestAAADiskClassCreation(unittest.TestCase):
@@ -43,17 +46,30 @@ class TestAAADiskClassCreation(unittest.TestCase):
             disk.delete_all_partitions()
 
 
+
+
+class TestBBBDeliberatelyBreakSomething(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def testName(self):
+        pass
+
+
 class TestDeleteAllPartitions(unittest.TestCase):
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
         self.disk = Disk(MY_TESTDISK_PATH)
+        self.disk.delete_all_partitions()
 
     def tearDown(self):
         self.disk.delete_all_partitions()
 
     def testName(self):
         self.disk.add_partition()
-
 
 
 class TestCreate12123(unittest.TestCase):
@@ -66,6 +82,11 @@ class TestCreate12123(unittest.TestCase):
         self.disk.delete_all_partitions()
 
     def testName(self):
+        d = Disk(MY_TESTDISK_PATH)
+        if [] != d.partitions:
+            print("WARNING --- TestCreatte12123 -- testName --- some partitions exist already")
+        if d.partitions != self.disk.partitions:
+            print("WARNING --- TestCreatte12123 -- testName --- d=", d.partitions, "but self.disk=", self.disk.partitions)
         self.disk.add_partition(partno=1, size_in_MiB=100)
         self.disk.add_partition(partno=2, size_in_MiB=100)
         with self.assertRaises(ValueError):
@@ -75,12 +96,11 @@ class TestCreate12123(unittest.TestCase):
         self.disk.add_partition(partno=3, size_in_MiB=100)
 
 
-
-
 class TestCreateFullThenAddOne(unittest.TestCase):
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
         self.disk = Disk(MY_TESTDISK_PATH)
+        self.disk.delete_all_partitions()
 
     def tearDown(self):
         self.disk.delete_all_partitions()
@@ -181,6 +201,44 @@ class TestLogicalPartitions_ONE(unittest.TestCase):
 
     def tearDown(self):
         self.disk.delete_all_partitions()
+    
+    def testBreakSomething(self):
+        upperlimit=9
+        d = Disk(MY_TESTDISK_PATH)
+        self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
+        d.delete_all_partitions()
+#        print("Creating the first four partitions")
+        d.add_partition(size_in_MiB=1024)
+        d.add_partition(size_in_MiB=1024)
+        d.add_partition(size_in_MiB=1024)
+        d.add_partition(fstype=_FS_EXTENDED)
+        for partno in range(1,5):
+            self.assertTrue(partition_exists(d.node, partno), "Partition #%d of %s does not exist, even though I just created it." % (partno, d.node))
+        for partno in range(5, upperlimit+1):
+#            print("Creating partition #%d" % partno)
+            d.add_partition(partno=partno, size_in_MiB=128)
+            pdev = d.partitions[partno-1].node
+            if not os.path.exists(pdev):
+#                print("%s does not exist. OK. Waiting for five seconds...")
+                time.sleep(5)
+#                if os.path.exists(pdev):
+#                    print("Wow. A small pause fixed teh problem.")
+            self.assertTrue(os.path.exists(pdev), "PartDev %s doesn't exist, even though I JUST CREATED it." % pdev)
+            for i in range(1, partno+1):
+                self.assertTrue(partition_exists(d.node, i), "Partition #%d of %s does not exist, even though I just created it." % (i, d.node))
+            for i in range(partno+1, partno+10):
+                self.assertFalse(partition_exists(d.node, i), "Partition #%d of %s exists, but it SHOULDN'T." % (i, d.node))
+        for partno in range(upperlimit, 0, -1):
+#            print("Deleting partition #%d" % partno)
+            pdev = d.partitions[partno-1].node
+            self.assertTrue(os.path.exists(pdev),  "PartDev %s does not exist. Weird. "% pdev)
+            d.delete_partition(partno)
+            self.assertFalse(os.path.exists(pdev), "PartDev %s is still there, even though I JUST DELETED it." % pdev)
+            for i in range(1, partno):
+                self.assertTrue(partition_exists(d.node, i), "Partition #%d of %s does not exist, even though I just created it." % (i, d.node))
+            for i in range(partno, partno+10):
+                self.assertFalse(partition_exists(d.node, i), "Partition #%d of %s exists, but it SHOULDN'T." % (i, d.node))
+
 
     def testName(self):
         self.disk.add_partition(size_in_MiB=1024)
@@ -286,24 +344,6 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.assertFalse(partition_exists(disk_path=self.disk.node, partno=6))
 
     def testMake5And7(self):
-        """
-        from my.disktools.disks import *
-        from my.disktools.partitions import partition_exists, _FS_EXTENDED
-        d = Disk('/dev/sda')
-        d.delete_all_partitions()
-        d.add_partition(size_in_MiB=1024)
-        d.add_partition(size_in_MiB=1024)
-        d.add_partition(size_in_MiB=1024)
-        d.add_partition(fstype=_FS_EXTENDED)
-        assert(False is partition_exists(disk_path=d.node, partno=5))
-        assert(False is partition_exists(disk_path=d.node, partno=6))
-        assert(False is partition_exists(disk_path=d.node, partno=7))
-        d.add_partition(partno=5, size_in_MiB=100)
-        assert(True is partition_exists(disk_path=d.node, partno=5))
-        assert(False is partition_exists(disk_path=d.node, partno=6))
-        assert(False is partition_exists(disk_path=d.node, partno=7))
-        d.add_partition(partno=7, size_in_MiB=100)
-        """
         self.assertFalse(partition_exists(disk_path=self.disk.node, partno=5))
         self.assertFalse(partition_exists(disk_path=self.disk.node, partno=6))
         self.assertFalse(partition_exists(disk_path=self.disk.node, partno=7))
@@ -324,6 +364,36 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.assertTrue(partition_exists(disk_path=self.disk.node, partno=5))
         self.assertTrue(partition_exists(disk_path=self.disk.node, partno=6))
         self.assertTrue(partition_exists(disk_path=self.disk.node, partno=7))
+
+    def testMake56765(self):
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=5))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=6))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=7))
+        self.disk.add_partition(5, size_in_MiB=500)
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=5))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=6))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=7))
+        self.disk.add_partition(6, size_in_MiB=600)
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=5))
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=6))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=7))
+        self.disk.add_partition(7, size_in_MiB=700)
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=5))
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=6))
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=7))
+        self.disk.delete_partition(7)
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=5))
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=6))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=7))
+        self.disk.delete_partition(6)
+        self.assertTrue(partition_exists(disk_path=self.disk.node, partno=5))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=6))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=7))
+        self.disk.delete_partition(5)
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=5))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=6))
+        self.assertFalse(partition_exists(disk_path=self.disk.node, partno=7))
+
 
     def testMake567AndTinkerWith2(self):
         self.assertFalse(partition_exists(disk_path=self.disk.node, partno=5))
@@ -365,6 +435,8 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.assertTrue(partition_exists(self.disk.node, 5))
         self.assertFalse(partition_exists(self.disk.node, 6))
 
+
+        
     # def testSomeOtherBS(self):
     #     '''
     #     self.disk.delete_partition(1)
