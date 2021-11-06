@@ -24,7 +24,7 @@ from my.exceptions.bases import (
     PartitionCreationException,
     PartitionModificationException,
     PartitionDeletionException,
-    MyDisktoolsOtherException,
+    MyDisktoolsOtherException, MyFructifyException,
 )
 
 
@@ -331,3 +331,184 @@ class DiskIDSettingFailureError(MyDisktoolsOtherException):
     def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
+
+
+
+
+
+class FructifyPreparationException(MyFructifyException):
+    """Do not raise me.
+
+    Note:
+        None.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
+        self.msg = msg
+        self.code = code
+
+
+class UnpopulatedWorkingCopyCreationException(FructifyPreparationException):
+    """Do not raise me.
+
+    Note:
+        None.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
+        self.msg = msg
+        self.code = code
+
+
+
+
+class BlankFileCreationError(UnpopulatedWorkingCopyCreationException):
+    """Failed to write big file of N MB of blank data to a temp file.
+
+    Note:
+        None.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
+        self.msg = msg
+        self.code = code
+
+
+
+class DestinationDeviceTooSmallError(UnpopulatedWorkingCopyCreationException):
+    """Failed to copy the temp image file to the real destination image.
+
+    Note:
+        None.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
+        self.msg = msg
+        self.code = code
+
+
+
+class DestinationImageWriteError(UnpopulatedWorkingCopyCreationException):
+    """Failed to move/rename the temp image file to/as the real destination file.
+
+    Note:
+        None.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
+        self.msg = msg
+        self.code = code
+
+
+class FilesystemCopyError(UnpopulatedWorkingCopyCreationException):
+    """Failed to copy files from source to destination.
+
+    Note:
+        None.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
+        self.msg = msg
+        self.code = code
+
+
+
+class MBRCopyError(UnpopulatedWorkingCopyCreationException):
+    """Failed to copy the master boot record (including boot sector) across.
+
+    Note:
+        None.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
+        self.msg = msg
+        self.code = code
+
+
+
+class DestinationPaddingWriteError(UnpopulatedWorkingCopyCreationException):
+    """Failed to pad out the destination image and make it the right size.
+
+    Note:
+        None.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
+        self.msg = msg
+        self.code = code
+
+
+
+
