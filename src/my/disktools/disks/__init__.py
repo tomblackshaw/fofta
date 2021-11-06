@@ -64,9 +64,7 @@ def threadsafeDisk(disk_path):
         disk_path (:obj:`str`): Full path to the disk in question. The
             path may be a simple /dev entry, e.g. /dev/sda or /dev/sda1,
             or it may be /dev/disk/by-uuid/..... etc. The end result is
-            the same. If it's a disk that holds partitions), then the
-            result returned will be True. If it's a partition, False.
-            If we can't figure it out, we raise an exception.
+            the same.
 
     Returns:
         bool: True if a disk, False if a partition.
@@ -103,9 +101,12 @@ def is_this_a_disk(node, insist_on_this_existence_state=None):
         node (:obj:`str`): Full path to the disk in question. The
             path may be a simple /dev entry, e.g. /dev/sda or /dev/sda1,
             or it may be /dev/disk/by-uuid/..... etc. The end result is
-            the same. If it's a disk that holds partitions), then the
-            result returned will be True. If it's a partition, False.
+            the same.
+            
+            If it's a disk that holds partitions), then the result
+            returned will be True. If it's a partition, False.
             If we can't figure it out, we raise an exception.
+
         insist_on_this_existence_state (:obj:`bool`, optional): For debugging
             purposes, it forces the subroutine to assume that the device does
             (or does not) exist. Do not set unless debugging the subroutine.
