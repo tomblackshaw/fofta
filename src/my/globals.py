@@ -77,6 +77,10 @@ e.g. ['fdisk', '/dev/sda']."
         (None if res_pair[0] is None else res_pair[0].decode("UTF-8")),
         (None if res_pair[1] is None else res_pair[1].decode("UTF-8")),
     )
+    with open('/tmp/call_binary.txt', 'a+') as f:
+        for i in param_lst:
+            f.write('%s ' % i)
+        f.write('    ==> %d\n' % to_be_returned[0]) 
     return to_be_returned
 
 
