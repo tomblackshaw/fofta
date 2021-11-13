@@ -22,7 +22,7 @@ import unittest
 # )
 from my.exceptions import PartitionTableCannotReadError,\
     MissingPriorPartitionError, PartitionDeletionError
-from my.globals import call_binary
+from my.globals import call_binary, _GPT, _DOS
 from my.disktools.disks import Disk, is_this_a_disk
 from my.disktools.partitions import delete_all_partitions, _FS_EXTENDED,\
     partition_exists
@@ -58,7 +58,7 @@ retcode, stdout_txt, stderr_txt = call_binary(['dd', 'bs=1024k', 'if=/dev/zero',
 retcode, stdout_txt, stderr_txt = call_binary(['losetup', '-d', MY_DISK_LOOPDEV])
 retcode, stdout_txt, stderr_txt = call_binary(['losetup', MY_DISK_LOOPDEV, MY_DISK_IMGFILE])
 os.system("partprobe %s" % MY_DISK_LOOPDEV)
-d = Disk(MY_DISK_LOOPDEV, new_partition_table='dos')
+d = Disk(MY_DISK_LOOPDEV, new_partition_table=_DOS)
 d.add_partition()
 adp = all_disk_paths()
 nt = partition_namedtuple(d.node)
@@ -80,7 +80,7 @@ if int(call_binary(['df','-m','/tmp'])[1].split('\n')[1].split('tmpfs')[1].strip
 retcode, stdout_txt, stderr_txt = call_binary(['dd', 'bs=1024k', 'if=/dev/zero', 'of='+MY_DISK_IMGFILE,
                                                'count=%d'%MY_DISK_IMGSIZE_IN_MB])
 
-d = Disk(MY_DISK_IMGFILE, new_partition_table='dos')
+d = Disk(MY_DISK_IMGFILE, new_partition_table=_DOS)
 d.add_partition()
 d.delete_partition(partno=1)
 
@@ -117,7 +117,7 @@ class TestDiskImageLoopdev(unittest.TestCase):
         call_binary(['rm', '-f', MY_DISK_IMGFILE])
         
     def testIsADisk(self):
-        _d = Disk(node=MY_DISK_LOOPDEV, new_partition_table='dos')
+        _d = Disk(node=MY_DISK_LOOPDEV, new_partition_table=_DOS)
         self.assertTrue(is_this_a_disk(MY_DISK_LOOPDEV))
         call_binary(['dd', 'bs=1024k', 'if=/dev/zero', 'of='+MY_DISK_IMGFILE,
                                                        'count=4'])
@@ -141,21 +141,21 @@ class TestDiskImageLoopdev(unittest.TestCase):
             _d = Disk(node=MY_DISK_LOOPDEV)
 
     def testNewPartitionTableSensibleGPT(self):
-        d = Disk(node=MY_DISK_LOOPDEV, new_partition_table='gpt')
-        self.assertEqual(d.disklabel_type, 'gpt')
+        d = Disk(node=MY_DISK_LOOPDEV, new_partition_table=_GPT)
+        self.assertEqual(d.disklabel_type, _GPT)
 
     def testNewPartitionTableSensibleDOS(self):
-        d = Disk(node=MY_DISK_LOOPDEV, new_partition_table='dos')
-        self.assertEqual(d.disklabel_type, 'dos')
+        d = Disk(node=MY_DISK_LOOPDEV, new_partition_table=_DOS)
+        self.assertEqual(d.disklabel_type, _DOS)
 
     def testCreateSimpleDiskPartitionTableRandoms(self):
         for _ in range(0,16):
-            dltype = ('gpt','dos')[random.randint(0,1)]
+            dltype = (_GPT,_DOS)[random.randint(0,1)]
             d = Disk(node=MY_DISK_LOOPDEV, new_partition_table=dltype)
             self.assertEqual(d.disklabel_type, dltype)
 
     def testAddPartitionAndRemoveItAgain(self):
-        d = Disk(node=MY_DISK_LOOPDEV, new_partition_table='dos')
+        d = Disk(node=MY_DISK_LOOPDEV, new_partition_table=_DOS)
         d.add_partition()
         d.delete_partition(1)
         
@@ -172,7 +172,7 @@ class TestDiskActualImage(unittest.TestCase):
 
     def testIsADIsk(self):
         self.assertFalse(is_this_a_disk(MY_DISK_IMGFILE))
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         self.assertTrue(is_this_a_disk(MY_DISK_IMGFILE))
         self.assertEqual(d.partitions, [])
         call_binary(['rm', '-f', MY_DISK_IMGFILE])
@@ -189,22 +189,22 @@ class TestDiskActualImage(unittest.TestCase):
     
     def testCreateSimpleDiskPartitionTableRandoms(self):
         for _ in range(0,16):
-            dltype = ('gpt','dos')[random.randint(0,1)]
+            dltype = (_GPT,_DOS)[random.randint(0,1)]
             d = Disk(node=MY_DISK_IMGFILE, new_partition_table=dltype)
             self.assertEqual(d.disklabel_type, dltype)
                 
     def testCreateAndDeleteImage(self):
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.add_partition()
         d.delete_partition(partno=1)
 
     def testCnD_Two(self):
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.add_partition()
         d.delete_partition(partno=1)
 
     def testMakeWibble(self):
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.delete_all_partitions()
 
     def testMakeSquibble(self):
@@ -221,14 +221,14 @@ if int(call_binary(['df','-m','/tmp'])[1].split('\n')[1].split('tmpfs')[1].strip
 retcode, stdout_txt, stderr_txt = call_binary(['dd', 'bs=1024k', 'if=/dev/zero', 'of='+MY_DISK_IMGFILE,
                                                'count=%d'%MY_DISK_IMGSIZE_IN_MB])
         
-d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
 d.add_partition(size_in_MiB=1024)
 d.add_partition(size_in_MiB=1024)
 d.add_partition(size_in_MiB=1024)
 d.add_partition(fstype=_FS_EXTENDED)
 d.delete_all_partitions()
         '''
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
@@ -236,14 +236,14 @@ d.delete_all_partitions()
         d.delete_all_partitions()
 
     def testMakeGerbil(self):
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
         d.add_partition(fstype=_FS_EXTENDED)
 
     def testMakeFive(self):
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
@@ -255,7 +255,7 @@ d.delete_all_partitions()
         self.assertFalse(partition_exists(disk_path=d.node, partno=6))
 
     def testMake5And6(self):
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
@@ -276,7 +276,7 @@ d.delete_all_partitions()
         self.assertFalse(partition_exists(disk_path=d.node, partno=6))
 
     def testMake5And7(self):
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
@@ -303,7 +303,7 @@ d.delete_all_partitions()
         self.assertTrue(partition_exists(disk_path=d.node, partno=7))
 
     def testMake56765(self):
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
@@ -338,7 +338,7 @@ d.delete_all_partitions()
 
 
     def testMake567AndTinkerWith2(self):
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
@@ -368,7 +368,7 @@ d.delete_all_partitions()
         self.assertFalse(partition_exists(disk_path=d.node, partno=2))
 
     def testDeleteHighestLogical(self):
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
@@ -381,7 +381,7 @@ d.delete_all_partitions()
         self.assertTrue(partition_exists(d.node, 6))
 
     def testDeleteNonhighestLogical(self):
-        d = Disk(node=MY_DISK_IMGFILE, new_partition_table='dos')
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)
         d.add_partition(size_in_MiB=32)

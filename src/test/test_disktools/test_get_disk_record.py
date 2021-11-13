@@ -12,7 +12,7 @@ Usage:-
 """
 import os.path
 import sys
-from test import MY_TESTDISK_PATH, MY_PARTTABLETYPE
+from test import MY_TESTDISK_PATH, _DOS
 import unittest
 
 from my.disktools.disks import is_this_a_disk, disk_namedtuple
@@ -103,7 +103,7 @@ class TestGetDiskRecord_TestFSTypeGetterAndSetter(unittest.TestCase):
         from my.disktools.disks import Disk
         from my.disktools.partitions import get_partition_fstype
 
-        d = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
+        d = Disk(MY_TESTDISK_PATH, _DOS)
         for fstype in ("83", "81", "83", "82", "80", "82", "83"):
             d.add_partition(partno=1, start=5555, end=9999, fstype=fstype)
             self.assertEqual(
@@ -116,7 +116,7 @@ class TestGetDiskRecord_TestFSTypeGetterAndSetter(unittest.TestCase):
         from my.disktools.disks import Disk
         from my.disktools.partitions import get_partition_fstype, set_partition_fstype
 
-        d = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
+        d = Disk(MY_TESTDISK_PATH, _DOS)
         for old_fstype in ("83", "5", "83", "82", "5", "82", "83"):
             for new_fstype in ("83", "5", "83", "82", "5", "82", "83"):
                 d.add_partition(partno=1, start=5555, end=9999, fstype=old_fstype)

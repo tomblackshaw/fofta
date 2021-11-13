@@ -11,7 +11,7 @@ Usage:-
 import os
 import random
 import sys
-from test import MY_TESTDISK_PATH, MY_PARTTABLETYPE
+from test import MY_TESTDISK_PATH, _DOS
 import unittest
 from my.disktools.partitions import (
     partition_exists,
@@ -107,7 +107,7 @@ class TestOverlappingSubroutine(unittest.TestCase):
     def setUp(self):
         delete_all_partitions(MY_TESTDISK_PATH)
         from my.disktools.disks import Disk
-        self.disk = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
+        self.disk = Disk(MY_TESTDISK_PATH, _DOS)
 
     def tearDown(self):
         delete_all_partitions(MY_TESTDISK_PATH)
@@ -121,7 +121,7 @@ class TestOverlappingSubroutine(unittest.TestCase):
         """
         from my.disktools.disks import Disk
         from my.disktools.partitions import add_partition, add_partition_SUB, overlapping
-        d = Disk('/dev/sda', MY_PARTTABLETYPE)
+        d = Disk('/dev/sda', _DOS)
         d.delete_all_partitions()
         d.add_partition(partno=1, start=5000, end=9990)
         d.add_partition(partno=2, start=10000, end=14990)
@@ -331,7 +331,7 @@ class TestLabelAndIDThing(unittest.TestCase):
     def testDevdiskbyxxxx_path_ONE(self):
         from my.disktools.disks import Disk
 
-        d = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
+        d = Disk(MY_TESTDISK_PATH, _DOS)
         d.add_partition(fstype="83", size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
         self.assertEqual(
@@ -351,7 +351,7 @@ class TestLabelAndIDThing(unittest.TestCase):
     def testDevdiskbyxxxx_path_TWO(self):
         from my.disktools.disks import Disk
 
-        d = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
+        d = Disk(MY_TESTDISK_PATH, _DOS)
         d.add_partition(fstype="83", size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
         self.assertEqual(
@@ -371,7 +371,7 @@ class TestLabelAndIDThing(unittest.TestCase):
     def testNameExt4_halfassed_update(self):
         from my.disktools.disks import Disk
 
-        d = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
+        d = Disk(MY_TESTDISK_PATH, _DOS)
         d.add_partition(fstype="83", size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
         self.assertEqual(
@@ -393,7 +393,7 @@ class TestLabelAndIDThing(unittest.TestCase):
     def testNameExt4_full_update(self):
         from my.disktools.disks import Disk
 
-        d = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
+        d = Disk(MY_TESTDISK_PATH, _DOS)
         d.add_partition(fstype="83", size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
         self.assertEqual(
@@ -414,7 +414,7 @@ class TestLabelAndIDThing(unittest.TestCase):
     def testNameBtrfs(self):
         from my.disktools.disks import Disk
 
-        d = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
+        d = Disk(MY_TESTDISK_PATH, _DOS)
         d.add_partition(fstype="83", size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
         self.assertEqual(
@@ -435,7 +435,7 @@ class TestLabelAndIDThing(unittest.TestCase):
     def testNameBtrfsFLAWEDwithoutpartprobe(self):
         from my.disktools.disks import Disk
 
-        d = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
+        d = Disk(MY_TESTDISK_PATH, _DOS)
         d.add_partition(fstype="83", size_in_MiB=300)
         self.assertEqual(len(d.partitions), 1)
         self.assertEqual(

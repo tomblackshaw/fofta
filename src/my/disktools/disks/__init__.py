@@ -39,7 +39,7 @@ from my.exceptions import (
     WeNeedAnExtendedPartitionError, PartitionTableCannotReadError,
     PartitionTableReorderingError, PartitionDeletionError,
 )
-from my.globals import call_binary
+from my.globals import call_binary, _GPT, _DOS
 
 import threading
 import time
@@ -257,8 +257,8 @@ def serno_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
         param_lst=["sfdisk", "-l", disk_path], input_str=None
     )
     if retcode != 0:
-        print(stderr_txt)
-        print("Warning -- serno_sizein_...et. - nonzero retcode")
+        sys.stderr.write(stderr_txt)
+        sys.stderr.write("Warning -- serno_sizein_...et. - nonzero retcode")
     disk_length_in_bytes, lab1, disk_length_in_sectors, lab2 = stdout_txt.split("\n")[
         0
     ].split(" ")[-4:]
@@ -566,9 +566,9 @@ def disk_namedtuple(disk_path):
 
 
 def reset_disk_partition_table(diskdev, pttype):
-    if pttype not in ('dos', 'gpt'):
+    if pttype not in (_DOS, _GPT):
         raise ValueError("Only dos or gpt is acceptable.")
-    ptdic = {'gpt':'g', 'irix':'G', 'dos':'o', 'sun':'s'}
+    ptdic = {_GPT:'g', 'irix':'G', _DOS:'o', 'sun':'s'}
     _retcode, _stdout_txt, stderr_txt = call_binary(['fdisk', diskdev], """
 {ptcode}
 w""".format(ptcode=ptdic[pttype]))
@@ -598,7 +598,7 @@ class Disk:
             we care about.
         new_partition_table (:obj:`str`, optional): The new partition
             table format. This will wipe the old partition table.
-            Please specify 'dos' or 'gpt' or None.
+            Please specify _GPT or _DOS or None.
 
     Returns:
         None.
@@ -617,11 +617,11 @@ class Disk:
         if not os.path.isfile(os.path.realpath(self._node)) and not self._node.startswith('/dev/loop') and not is_this_a_disk(self._user_specified_node):
             raise ValueError("Nope -- %s is not a disk" % self._user_specified_node)
         if new_partition_table is not None:
-            if new_partition_table not in ('gpt','dos'):
+            if new_partition_table not in (_GPT, _DOS):
                 raise ValueError("New partition table type must me dos, gpt, sun, or irix... not {new_partition_table}".format(new_partition_table=new_partition_table))
             reset_disk_partition_table(diskdev=self._node, pttype=new_partition_table)
         self.update()
-        # if self.disklabel_type != 'dos':
+        # if self.disklabel_type != _DOS:
         #     sys.stderr.write("WARNING --- I have not been tested with a %s partition table\n" % self.disklabel_type)
 
     def __repr__(self):
@@ -679,9 +679,9 @@ class Disk:
         for p in self._cache.partitiontable.partitions:
             self.partitions.append(DiskPartition(p.node))
         if self.overlapping:
-            print("Warning -- partitions in %s are overlapping" % self.node)
+            sys.stderr.write("Warning -- partitions in %s are overlapping" % self.node)
         if self._pddev != self.node:
-            print("Warning -- sfdisk said the node is {pddev} but you said it was {node}".format(pddev=self._pddev, node=self.node))
+            sys.stderr.write("Warning -- sfdisk said the node is {pddev} but you said it was {node}".format(pddev=self._pddev, node=self.node))
         for p in self.partitions:
             p.update()
 
@@ -970,7 +970,7 @@ the order of the logical partitions." % (partno + 1, self.node, partno))
             finally:
                 self.update(partprobe=update)
         else:
-            print(
+            sys.stderr.write(
                 "No need to delete partition #%d from %s --- that partition does not exist"
                 % (partno, self.node)
             )

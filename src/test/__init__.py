@@ -15,7 +15,6 @@ import unittest
 import random
 
 MY_TESTDISK_PATH = "/dev/sda"  # disk/by-id/usb-Mass_Storage_Device_121220160204-0:0'
-MY_PARTTABLETYPE = 'dos' # ('gpt','dos')[random.randint(0,1)]
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']

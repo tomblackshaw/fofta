@@ -6,7 +6,7 @@ Created on Nov 2, 2021
 """
 #from my.disktools.partitions import DiskPartition, partition_namedtuple
 import os
-from my.globals import call_binary
+from my.globals import call_binary, _GPT, _DOS
 
 
 
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     retcode, stdout_txt, stderr_txt = call_binary(['losetup', '-d', MY_DISK_LOOPDEV])
     retcode, stdout_txt, stderr_txt = call_binary(['losetup', MY_DISK_LOOPDEV, MY_DISK_IMGFILE])
     os.system("partprobe " + MY_DISK_LOOPDEV)
-    d = Disk(MY_DISK_LOOPDEV, new_partition_table='dos')
+    d = Disk(MY_DISK_LOOPDEV, new_partition_table=_DOS)
     try:
         d.add_partition()
     except AttributeError:

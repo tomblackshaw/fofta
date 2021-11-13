@@ -26,7 +26,7 @@ Todo:
 import os
 import random
 import sys
-from test import MY_TESTDISK_PATH, MY_PARTTABLETYPE
+from test import MY_TESTDISK_PATH, _DOS
 import unittest
 from my.globals import call_binary, generate_random_string, pause_until_true
 
@@ -35,7 +35,7 @@ class TestCallBinary(unittest.TestCase):
     def setUp(self):
         from my.disktools.disks import Disk
 
-        self.disk =Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
+        self.disk =Disk(MY_TESTDISK_PATH, _DOS)
 
     def tearDown(self):
         self.disk.delete_all_partitions()
@@ -95,7 +95,7 @@ class TestPauseUntilTrue(unittest.TestCase):
     def setUp(self):
         from my.disktools.disks import Disk
 
-        self.disk = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
+        self.disk = Disk(MY_TESTDISK_PATH, _DOS)
 
     def tearDown(self):
         self.disk.delete_all_partitions()

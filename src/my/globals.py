@@ -21,6 +21,9 @@ import string
 import time
 
 
+_DOS = 'dos'
+_GPT = 'gpt'
+
 
 
 def generate_random_string(length):

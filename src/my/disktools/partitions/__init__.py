@@ -53,6 +53,7 @@ from my.exceptions import (
 from my.globals import call_binary, pause_until_true
 import subprocess
 import time
+import sys
 
 
 _FS_EXTENDED = "5"
@@ -728,7 +729,7 @@ def add_partition_SUB(
     disk_path = os.path.realpath(disk_path)
     res = 0
     if debug:
-        print(
+        sys.stderr.write(
             "add_partition_SUB() -- disk_path=%s; partno=%s; start=%s; end=%s; size_in_MiB=%s"
             % (str(disk_path), str(partno), str(start), str(end), str(size_in_MiB))
         )
@@ -743,7 +744,7 @@ def add_partition_SUB(
     else:
         end_str = None
     if debug:
-        print("end_str is", end_str)
+        sys.stderr.write("end_str is", end_str)
         debug_str = ""
     else:
         debug_str = " >/dev/null 2>/dev/null"
@@ -895,7 +896,7 @@ def add_partition(
         fstype = _FS_DEFAULT
     disk_path = os.path.realpath(disk_path)
     if debug:
-        print(
+        sys.stderr.write(
             "add_partition() -- disk_path=%s; partno=%s; start=%s; end=%s; fstype=%s; size_in_MiB=%s"
             % (
                 str(disk_path),
