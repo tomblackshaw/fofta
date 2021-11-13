@@ -11,7 +11,7 @@ Usage:-
 """
 import os
 import sys
-from test import MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE
+from test import MY_TESTDISK_PATH, MY_PARTTABLETYPE
 import unittest
 
 from my.disktools.disks import Disk, is_this_a_disk, set_serno
@@ -40,7 +40,7 @@ class TestAAADiskClassCreation(unittest.TestCase):
 
     def testName(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
-        disk = Disk(MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE)
+        disk = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
         for _ in range(3):
             disk.delete_all_partitions()
 
@@ -61,7 +61,7 @@ class TestBBBDeliberatelyBreakSomething(unittest.TestCase):
 class TestDeleteAllPartitions(unittest.TestCase):
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
-        self.disk = Disk(MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE)
+        self.disk = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
         self.assertEqual(self.disk._pddev, self.disk.node)
         self.disk.delete_all_partitions()
 
@@ -75,7 +75,7 @@ class TestDeleteAllPartitions(unittest.TestCase):
 class TestCreate12123(unittest.TestCase):
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
-        self.disk = Disk(MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE)
+        self.disk = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
         self.disk.delete_all_partitions()
 
     def tearDown(self):
@@ -99,7 +99,7 @@ class TestCreate12123(unittest.TestCase):
 class TestCreateFullThenAddOne(unittest.TestCase):
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
-        self.disk = Disk(MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE)
+        self.disk = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
         self.disk.delete_all_partitions()
 
     def tearDown(self):
@@ -114,7 +114,7 @@ class TestCreateFullThenAddOne(unittest.TestCase):
 class TestCreateDeliberatelyOverlappingPartitions(unittest.TestCase):
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
-        self.disk = Disk(MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE)
+        self.disk = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
         self.disk.delete_all_partitions()
 
     def tearDown(self):
@@ -154,7 +154,7 @@ class TestCreateDeliberatelyOverlappingPartitions(unittest.TestCase):
 class TestMakeFourAndFiddleWithP2(unittest.TestCase):
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
-        self.disk = Disk(MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE)
+        self.disk = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
         self.disk.delete_all_partitions()
 
     def tearDown(self):
@@ -196,7 +196,7 @@ class TestMakeFourAndFiddleWithP2(unittest.TestCase):
 class TestLogicalPartitions_ONE(unittest.TestCase):
     def setUp(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
-        self.disk = Disk(MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE)
+        self.disk = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
         self.disk.delete_all_partitions()
 
     def tearDown(self):
@@ -271,7 +271,7 @@ class TestLogicalPartitions_ONE(unittest.TestCase):
 
 class TestSettingDiskID(unittest.TestCase):
     def setUp(self):
-        self.disk = Disk(MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE)
+        self.disk = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
         self.disk.delete_all_partitions()
 
@@ -309,7 +309,7 @@ class TestSettingDiskID(unittest.TestCase):
 
 class TestLogicalPartitions_TWO(unittest.TestCase):
     def setUp(self):
-        self.disk = Disk(MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE)
+        self.disk = Disk(MY_TESTDISK_PATH, MY_PARTTABLETYPE)
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
         self.disk.delete_all_partitions()
         self.disk.add_partition(size_in_MiB=1024)

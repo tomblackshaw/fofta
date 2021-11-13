@@ -19,7 +19,7 @@ from test.test_disktools import (
     SAMPLE_LIST_OF_DRIVES_STUBS,
     SAMPLE_LIST_OF_DODGY_STUBS,
 )
-from test import MY_TESTDISK_PATH,  RANDOMLY_CHOSEN_PARTTABLETYPE
+from test import MY_TESTDISK_PATH,  MY_PARTTABLETYPE
 from my.disktools.partitions import (
     delete_all_partitions,
     add_partition,
@@ -29,7 +29,7 @@ import random
 
 
 def make_disk_have_one_randomizerd_partitionom_partition(disk_path, partno):
-    _ = Disk(disk_path, RANDOMLY_CHOSEN_PARTTABLETYPE)
+    _ = Disk(disk_path, MY_PARTTABLETYPE)
     delete_all_partitions(MY_TESTDISK_PATH)
     start = random.randint(5555, 9999)
     end = start + random.randint(1000, 99999)
