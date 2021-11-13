@@ -284,6 +284,10 @@ def serno_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
     )
 
 
+def get_serno(disk_path):
+    return serno_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)[0]
+
+
 def set_serno(disk_path, new_serno):
     """Set the serial number of the specified disk.
 
@@ -318,8 +322,8 @@ w
         ),
     )
     _, __, ___ = call_binary(['partprobe', disk_path])
-    resultant_id = serno_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)[0]
-    if resultant_id != new_serno:
+    resultant_serno = get_serno(disk_path) 
+    if resultant_serno != new_serno:
         # print(retcode)
         # print(stdout_txt)
         # print(stderr_txt)
