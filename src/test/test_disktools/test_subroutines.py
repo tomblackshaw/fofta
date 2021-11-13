@@ -29,6 +29,7 @@ import random
 
 
 def make_disk_have_one_randomizerd_partitionom_partition(disk_path, partno):
+    _ = Disk(disk_path, RANDOMLY_CHOSEN_PARTTABLETYPE)
     delete_all_partitions(MY_TESTDISK_PATH)
     start = random.randint(5555, 9999)
     end = start + random.randint(1000, 99999)
@@ -36,9 +37,7 @@ def make_disk_have_one_randomizerd_partitionom_partition(disk_path, partno):
     add_partition(
         disk_path=disk_path, partno=partno, start=start, end=end, fstype=fstype
     )
-    from my.disktools.disks import Disk
-
-    partition = Disk(disk_path, RANDOMLY_CHOSEN_PARTTABLETYPE).partitions[0]
+    partition = Disk(disk_path).partitions[0]
     assert partition.partno == partno
     return (disk_path, start, end, fstype, partno, partition)
 
