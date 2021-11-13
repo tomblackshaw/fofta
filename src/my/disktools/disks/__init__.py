@@ -971,7 +971,7 @@ the order of the logical partitions." % (partno + 1, self.node, partno))
                 self.update(partprobe=update)
         else:
             sys.stderr.write(
-                "No need to delete partition #%d from %s --- that partition does not exist"
+                "No need to delete partition #%d from %s --- that partition does not exist\n"
                 % (partno, self.node)
             )
 
