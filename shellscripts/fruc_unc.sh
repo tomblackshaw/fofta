@@ -37,192 +37,18 @@ e.g. $0 /root/armbian.img btrfs /root/out.img
 
 "
 fi
-source_img_fname="$1"
-rootfs_format="$2"
-output_image_fname="$3"
-
-
-
-
-die() {
-# Echo the supplied string to STDERR.
-# Then, quit w/ nonzero error code.
-#
-########
-    echo "$1" >> /dev/stderr
-    exit 1
-}
-
 
 
 
 
 DESIRED_IMAGE_SIZE_IN_MB=2700
 
-check_our_incoming_parameters_sanity() {
-# Validate incoming parameters of this script.
-# Abort the script if the parameters aren't valid.
-#
-########
-    for i in zstd mkfs.btrfs mkfs.xfs; do
-        which $i > /dev/null || die "Please install $i"
-    done 
-    if [ ! -f "$source_img_fname" ]; then
-        die "Your source image file does not exist"
-    elif [ -e "$pooldev" ] && [ "$rootfs_format" == "zfs" ]; then
-        die "$pooldev already exists. I cannot support ZFS because of that. Sorry."
-    elif [ "$source_img_fname" == "" ] || [ ! -e "$source_img_fname" ]; then
-        die "Source image filename (parameter 1) is bogus"
-    elif [ "$output_image_fname" == "" ]; then
-        die "Output image fname (parameter 2) is bogus"
-    elif [ "$rootfs_format" != "ext4" ] && [ "$rootfs_format" != "btrfs" ] && [ "$rootfs_format" != "zfs" ] && [ "$rootfs_format" != "xfs" ]; then
-        die "Parameter #2 should be the destination format: btrfs, xfs, or zfs"
-    elif ! fdisk -l "$source_img_fname" > /dev/null 2> /dev/null; then
-        die "The source image file has no partition table. That is weird. Are you sure it's a valid image?"
-    elif fdisk -l "$source_img_fname" | grep $source_img_fname[1-9] | grep -v $source_img_fname"1" > /dev/null; then
-        die "The sourfce image file has more than one partition. That is weird. Are you sure it's a pristine Armbian image?"
-    elif echo "$i" | grep $source_img_fname[1-9]; then
-        die "The source image file has two or more partitions."
-    elif mount | grep "$mtpt" > /dev/null; then
-        die "Please unmount $mtpt first and then run me again."
-    elif mount | grep "$mtpt.old" > /dev/null; then
-        die "Please unmount $mtpt.old first and then run me again."
-    elif losetup 2> /dev/null | grep "$bootdev"; then
-        die "Please free up loopback boot device $bootdev and run me again."
-    elif losetup 2> /dev/null | grep "$rootdev"; then
-        die "Please free up loopback root device $rootdev and run me again."
-    elif losetup 2> /dev/null | grep "$old_dev"; then
-        die "Please free up loopback root device $old_dev and run me again."
-    elif ! which zfs > /dev/null || ! which zpool > /dev/null; then
-        die "Please install ZFS etc. and run me again."
-    elif echo "$output_image_fname" | grep -x "/dev/.*" > /dev/null && [ "$(fdisk -l "$output_image_fname" 2> /dev/null | head -n1 | cut -d' ' -f3 | cut -d'.' -f1)" -ge "500" ]; then
-        die "I have a sneaking suspicion that $output_image_fname is NOT the device you want me to wipe."
-    elif echo "$output_image_fname" | grep -x "/dev/.*" > /dev/null; then
-        die "Please do not use /dev/... as an output."
-    elif [ ! -e "$bootdev" ] || [ ! -e "$rootdev" ] || [ ! -e "$old_dev" ]; then
-        die "Please free up the /dev/loop devices (using losetup -D perhaps) and run me again."
-    else
-        echo "I shall:-
-- make a working copy of the source image file
-- save the files and directories therein
-- repartition the working copy
-- repopulate the filesystem
-- install additional tools
-
-Please wait. This might take up to an hour.
-"
-    fi
-}
-
-
-
-mkdir_and_mount_dev_tmpfs_etc_on_mtpt() {
-# Prepare the chroot jail for proper use. Create and mount
-# /dev, /tmp, /run, /proc, /mnt, /media, /sys, etc. Before
-# doing that, run an 'unmount' to avoid double-tapping.
-#
-########
-    unmount_dev_tmpfs_etc_on_mtpt
-    cd "$mtpt"
-    mkdir -p "$mtpt"/{dev,media,mnt,proc,run,sys,tmp}
-    chmod 1777 "$mtpt"/tmp || die ".......failed."
-    (mount dev dev -t devtmpfs; mount proc proc -t proc; mount sys sys -t sysfs; mount tmp tmp -t tmpfs; mount run run -t tmpfs) || die "...failed to mount dev, sys, etc."
-    cd /
-}
-
-
-
-unmount_dev_tmpfs_etc_on_mtpt() {
-# Unmount the dev, proc, etc. folders in the chroot jail.
-#
-########
-    cd /
-    umount "$mtpt"/{dev,proc,sys,tmp,run} 2> /dev/null
-}
 
 
 
 
 
 
-repartition_and_losetup_our_working_copy() {
-# Delete the working copy's old partitions. Install two partitions:
-# one that began on the same sector on the new image as it did on
-# the source image, and one that occupies the rest of the working
-# copy. The first partition (on the working copy) will be 512MB long,
-# whereas the first and only partition on the source image will
-# take up 1GB or more.
-#
-########
-    echo -en "succeeded.\nRepartitioning our working copy of the source image..."
-    [ "$rootfs_format" == "zfs" ] && zpool destroy $POOLNAME > /dev/null 2> /dev/null
-    sync;sync;sync;partprobe;sync;sync;sync
-    # We derive the old partition info from the SOURCE IMAGE, not the destination image.
-    raw_attribs_of_p1=$(fdisk -l "$source_img_fname" | grep $source_img_fname"1"| tr -s '\t' ' ')
-    noof_attributes=$(echo "$raw_attribs_of_p1" | wc -w)
-    p1_start=$(echo "$raw_attribs_of_p1" | cut -d' ' -f$(($noof_attributes-5)))
-    p1_end=$(echo "$raw_attribs_of_p1" | cut -d' ' -f$(($noof_attributes-4)))
-    p1_noofsectors=$(echo "$raw_attribs_of_p1" | cut -d' ' -f$(($noof_attributes-3)))
-    p1_format=$(echo "$raw_attribs_of_p1" | cut -d' ' -f$(($noof_attributes)))
-    if [ "$p1_format" != "Linux" ]; then
-        if [ "$p1_format" == "" ]; then
-            die "Are you sure that your source disk image file is a disk image at all? Look into this, please."
-        else
-            die "For some reason, partition #1 is formatted $p1_format (not Linux). Weird. Look into this, please."
-        fi
-    fi
-    echo -en "p\nd\n4\nd\n3\nd\n2\nd\n1\nd\nd\nn\np\n1\n"$p1_start"\n+512MB\ny\nw\n" | fdisk "$output_image_fname"
-    sync;sync;sync;partprobe;sync;sync;sync
-    raw_attribs_of_p1=$(fdisk -l "$output_image_fname" | grep $output_image_fname"1"| tr -s '\t' ' ')
-    p1_end=$(echo "$raw_attribs_of_p1" | cut -d' ' -f$(($noof_attributes-4)))
-    p1_noofsectors=$(echo "$raw_attribs_of_p1" | cut -d' ' -f$(($noof_attributes-3)))
-    p2_start=$(($p1_end+1)) || die "Unable to calculate the start of partition #2"
-    echo -en "n\np\n2\n"$p2_start"\n\nw\n" | fdisk "$output_image_fname"
-    sync;sync;sync;partprobe;sync;sync;sync
-    if ! fdisk -l "$output_image_fname" | grep $(basename $output_image_fname)"1" > /dev/null || ! fdisk -l "$output_image_fname" | grep $(basename $output_image_fname)"2" > /dev/null; then
-        die ".....failed."
-    fi
-    sync;sync;sync;partprobe;sync;sync;sync
-    echo -en "succeeded.\nFormatting and mounting the partitions..."
-    losetup $bootdev -o $(($p1_start*512)) --sizelimit $(($p1_noofsectors*512)) "$output_image_fname"
-    losetup $rootdev -o $(($p2_start*512)) "$output_image_fname"
-    losetup $old_dev -o $(($p1_start*512)) "$source_img_fname"
-}
-
-
-
-set_the_new_serialno_of_our_disk_image() {
-# Set a new serial number for our disk image.
-# Params: <image fname> <serial number>
-#
-# NB: The serial number MUST BE HEX and MUST NOT include other
-#     characters. This includes '0x'. DO NOT INCLUDE 0X!
-#
-########
-    local imgfile=$1 serno=$2 itendedupbeing
-    if [ "$imgfile" == "" ] || [ ! -e "$imgfile" ] || [ "$serno" == "" ]; then
-        die "set_the_new_serialno_of_our_disk_image() --- bad parameters"
-    fi
-    echo -en "succeeded.\nChanging the disk image's serial number..."
-    echo -en "x\ni\n0x${serno}\nr\np\nw\n" | fdisk $imgfile
-    itendedupbeing=$(fdisk -l $imgfile | grep ":.*0x" | head -n1 | tr ' ' '\n' | grep -vx "" | tail -n1)
-    [ "$itendedupbeing" == "0x${serno}" ] || die "Failed to set image serial#"
-}
-
-
-
-format_and_mount_our_wkg_copy_as_EXT4() {
-    yes y | mkfs.ext4  -L $rootlbl $rootdev              || die "Failed to format $rootdev ext4"
-    fsck -f -p $rootdev
-    yes y | mkfs.ext4  -L $rootlbl $rootdev              || die "Failed to format $rootdev ext4"
-    mount                    LABEL=$rootlbl "$mtpt"      || die "Failed to mount $mtpt"
-    cat << FSTX > $mtpt/.fstab.new
-#    device   mountpoint format attributes
-LABEL=$bootlbl /boot     ext4  defaults,noatime                                   0 1
-LABEL=$rootlbl /         ext4  defaults,noatime                                   0 2
-tmpfs /tmp tmpfs defaults,nosuid 0 0
-FSTX
-}
 
 
 
@@ -657,64 +483,7 @@ adjust_bootup_configuration() {
 
 
 
-delete_crap_before_unmount() {
-    echo -en "succeeded. Wiping unused sectors..."
-    rm -f "$mtpt"/var/cache/apt/archives/*.deb
-    dd iflag=fullblock if=/dev/zero of="$mtpt"/000 bs=1024k || true
-    rm -f "$mtpt"/000
-}
 
-
-
-catch_and_fix_mysterious_bootwiping_bug() {
-    cd $mtpt
-    mount | grep "$mtpt/boot" > /dev/null || mount $bootdev $mtpt/boot
-    ls $mtpt/boot/armbianEnv.txt > /dev/null || die "NOOO! I MUST NOT BACKUP BOOT! IT IS EMPTY!"
-    sync;sync;sync; sleep 1; sync;sync;sync; cd "$mtpt"; tar -c --lzo boot > "$mtpt".boot.tar.lzo; cd /
-
-    echo "Making a backup of my recently installed filesystem"
-    cd $mtpt || die "Failed to chdir to $mtpt"
-    tar -c --lzo * | dd bs=1024k > /root/p2and1.tar.lzo
-    cd /
-
-    mkdir -p       "$mtpt.other"/boot
-    mount $bootdev "$mtpt.other"/boot || die "Failed to mount mtpt.other/boot"
-
-    if ! ls "$mtpt.other"/boot/armbianEnv.txt > /dev/null 2> /dev/null; then
-        echo -en "A mysterious bug wiped /boot. That's OK, though. I'll fix it..."
-        cd "$mtpt.other"; tar --lzo -xf "$mtpt".boot.tar.lzo 2> /dev/null || die "Failed to restore /boot from backup."
-        cd /; umount "$mtpt.other"/boot
-        mount $bootdev "$mtpt.other"/boot
-        ls "$mtpt.other"/boot/armbianEnv.txt > /dev/null && echo -en "yay..." || die "Workaround failed utterly."
-    fi
-    umount "$mtpt.other"/boot "$mtpt.other" 2> /dev/null
-    rmdir "$mtpt.other"/boot "$mtpt.other"
-    rm -f "$mtpt".boot.tar.lzo
-    cd /
-}
-
-
-unmount_disk_image_and_loopdevs() {
-    echo -en "succeeded.\nRunning final check..."
-    killall preload 2> /dev/null
-    for _ in 1 2 3; do
-        for i in $(mount | grep "$mtpt/" | cut -d' ' -f3,4 | tr ' ' '\n' | grep "$mtpt" | sort -r); do umount $i 2> /dev/null; done
-        umount $mtpt/{var/log,home,boot} 2> /dev/null
-        umount $mtpt/boot 2> /dev/null
-        umount $mtpt 2> /dev/null
-        sleep 1
-    done
-    mount | grep "$mtpt" && die "Some $mtpt partitions are still mounted"
-    losetup -d $bootdev $rootdev $old_dev || die "Failed to release loopmount devs"
-}
-
-
-sync_and_partprobe() {
-    sleep 1;sync;sync;sync;sleep 1
-    echo "Running partprobe $1"
-    partprobe $1
-    sleep 1;sync;sync;sync;sleep 1
-}
 
 
 make_my_zdisk_pool() {
@@ -806,46 +575,5 @@ rootfs_format=zfs
 output_image_fname=/root/out.$rootfs_format.img
 }
 
-
-FRUCUUID=$(dd if=/dev/urandom bs=1 count=100 2>/dev/null | tr -dc 'a-z0-9' | cut -c-6)
-IMGSERNO=$(printf "%08x" 0x$(dd if=/dev/urandom bs=1 count=100 2>/dev/null | tr -dc 'a-f0-9' | cut -c-8))
-bootlbl="$FRUCUUID"Boot
-rootlbl="$FRUCUUID"Root
-bootdev=/dev/loop3
-rootdev=/dev/loop4
-old_dev=/dev/loop5
-mtpt=/tmp/fructify_mtpt                  #/tmp/my_mtpt_"$FRUCUUID"
-mkdir -p "$mtpt"
-cd /
-pwd="$PWD"
-check_our_incoming_parameters_sanity
-create_a_working_copy_of_the_source_image
-#set_the_new_serialno_of_our_disk_image $output_image_fname $IMGSERNO
-repartition_and_losetup_our_working_copy
-format_and_mount_root                              ### QQQ ZFS STUFF
-format_and_mount_our_wkg_copy_boot_partition
-populate_working_copy
-modify_diskresizer_script
-adjust_bootup_configuration                        ### QQQ ZFS STUFF
-[ -e "$mtpt/boot/uInitrd.new" ] || die "$mtpt/boot/uInitrd.new is missing --- weird"
-catch_and_fix_mysterious_bootwiping_bug
-if [ "$rootfs_format" == "zfs" ]; then
-    echo -en "succeeded.\nUpdating the zfs cache (and then unmounting everything)..."
-    systemctl stop zed
-    do_the_legwork                                 ### QQQ ZFS STUFF
-    losetup -D
-else
-    echo -en "succeeded.\nUnmounting everything..."
-    unmount_disk_image_and_loopdevs
-fi
-
-cd "$pwd"
-echo "succeeded.
-Please examine $output_image_fname and see if it is kosher.
-
-To write this to /dev/sda, do this:-
-# pv -B 1M $output_image_fname | dd of=/dev/sda bs=1024k
-"
-exit 0
 
 

@@ -20,6 +20,7 @@ from collections import namedtuple
 import os
 
 
+
 def devdiskbyxxxx_path(device_path, searchby):
     """Locate the /dev/disk/by-____/ softlink to the specified device path.
 
@@ -69,3 +70,16 @@ def devdiskbyxxxx_path(device_path, searchby):
         except FileNotFoundError:
             pass
     return None
+
+
+
+
+
+def has_legible_parttable(node):
+    from my.globals import call_binary
+    """Return True if supplied disk path contains a legible partition table; else, False."""
+    retcode, _stdouf_txt, _stderr_txt = call_binary(['sfdisk','-d',node])
+    return True if retcode == 0 else False
+
+
+

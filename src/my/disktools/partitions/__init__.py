@@ -91,7 +91,6 @@ class DiskPartition:
     def __init__(self, node):
         self._user_specified_node = node
         self._node = os.path.realpath(self._user_specified_node)
-        self.__cache = None
         self.update()
         if self.parentnode is None:
             raise ValueError(
@@ -120,15 +119,15 @@ class DiskPartition:
 
     def update(self):
         """Update the fields by reading sfdisk's output and processing it."""
-        self.__cache = partition_namedtuple(self.node)
-        self._start = self.__cache.start
-        self._size = self.__cache.size
-        self._fstype = self.__cache.type
-        self._id = devdiskbyxxxx_path(self.node, "id")  # self.__cache.id
-        self._label = devdiskbyxxxx_path(self.node, "label")  # etc.
-        self._partuuid = devdiskbyxxxx_path(self.node, "partuuid")
-        self._path = devdiskbyxxxx_path(self.node, "path")
-        self._uuid = devdiskbyxxxx_path(self.node, "uuid")
+        self._cache = partition_namedtuple(self.node)
+        self._start = self._cache.start  
+        self._size = self._cache.size
+        self._fstype = self._cache.type
+        self._myid = devdiskbyxxxx_path(self.node, "id")  if self.isdev else None
+        self._label = devdiskbyxxxx_path(self.node, "label")  if self.isdev else None
+        self._partuuid =devdiskbyxxxx_path(self.node, "partuuid") if self.isdev else None
+        self._path = devdiskbyxxxx_path(self.node, "path") if self.isdev else None
+        self._uuid = devdiskbyxxxx_path(self.node, "uuid") if self.isdev else None
 
     @property
     def node(self):
@@ -144,16 +143,31 @@ class DiskPartition:
         raise AttributeError("Not permitted")
 
     @property
-    def parentnode(self):
-        """str: The disk to which I belong. This is a class instance."""
-        if not os.path.exists(self.node):
-            raise AttributeError("%s does not exist" % self.node)
-        from my.disktools.disks import namedtuples_for_all_disks
+    def isdev(self):
+        """:obj:`str`: The /dev path of this partition."""
+        return True if self.node.startswith("/dev/") else False
 
-        for d in namedtuples_for_all_disks():
-            for p in d.partitiontable.partitions:
-                if self.node in partition_paths(p):
-                    return d.partitiontable.node
+    @isdev.setter
+    def isdev(self, value):
+        raise AttributeError("Not permitted")
+
+    @isdev.deleter
+    def isdev(self):
+        raise AttributeError("Not permitted")
+    
+    @property
+    def parentnode(self):
+        """str: The disk to which I belong."""
+        from my.disktools.disks import namedtuples_for_all_disks
+        if not self.isdev:
+            return self.node.rstrip('01234567890')
+        else:
+            if not os.path.exists(self.node):
+                raise AttributeError("%s does not exist" % self.node)
+            for d in namedtuples_for_all_disks():
+                for p in d.partitiontable.partitions:
+                    if self.node in partition_paths(p):
+                        return d.partitiontable.node
         return None
 
     @parentnode.setter
@@ -231,16 +245,16 @@ class DiskPartition:
         raise AttributeError("Not permitted")
 
     @property
-    def id(self):
+    def myid(self):
         """:obj:`str`: id."""
-        return self._id
+        return self._myid
 
-    @id.setter
-    def id(self, value):
-        self._id = value
+    @myid.setter
+    def myid(self, value):
+        self._myid = value
 
-    @id.deleter
-    def id(self):
+    @myid.deleter
+    def myid(self):
         raise AttributeError("Not permitted")
 
     @property
@@ -314,7 +328,7 @@ def deduce_partno(partition_path):
     if (
         partition_path in (None, "")
         or os.path.isdir(partition_path)
-        or not partition_path.startswith("/dev/")
+        or (not partition_path.startswith("/dev/") and not os.path.exists(partition_path) and not os.path.exists(partition_path.rstrip('01234567890')))
         or partition_path == "/dev/"
     ):
         raise ValueError("partition_path %s is a silly value" % str(partition_path))
@@ -412,34 +426,6 @@ def delete_all_partitions(partition_path):
     call_binary(['partprobe',realpartition_path])
 
 
-def NEW_partition_exists(disk_path, partno):
-    """Does this partno# exist on this disk?
-
-    Note:
-        None.
-
-    Args:
-        disk_path (:obj:`str`): The /dev entry of the disk in
-            question. This may be almost any /dev entry (including
-            softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
-            but I'll always deduce the real entry (probably /dev/sdX
-            or /dev/mmcblkN) and use that as my node path.
-        partno (int): The partition#.
-
-    Returns:
-        True if `disk_path` exists, False if it doesn't.
-
-    """
-    if not os.path.exists(disk_path):
-        raise FileNotFoundError("Disk %s not found" % disk_path)
-    disk_path = os.path.realpath(disk_path)
-    for t in ('', 'p'):
-        dev_str = ('%s%s%d' % (disk_path, t, partno))
-        if os.path.exists(dev_str):
-            return True
-    return False        
-
-
 def partition_exists(disk_path, partno):
     """Does this partno# exist on this disk?
 
@@ -447,32 +433,36 @@ def partition_exists(disk_path, partno):
         None.
 
     Args:
-        disk_path (:obj:`str`): The /dev entry of the disk in
+        disk_path (:obj:`str`): The /dev entry of the disk or file in
             question. This may be almost any /dev entry (including
             softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
             but I'll always deduce the real entry (probably /dev/sdX
-            or /dev/mmcblkN) and use that as my node path.
+            or /dev/mmcblkN) and use that as my node path. Or, it may
+            be /root/image.img or whatnot.
         partno (int): The partition#.
 
     Returns:
-        True if partition exists, False if it doesn't.
+        True if `disk_path` exists, False if it doesn't.
 
     """
+    _retcode, stdout_txt, _stderr_txt = call_binary(['sfdisk','-d',disk_path])
+#    if _retcode == 0:
+    relevant_lines = [r for r in stdout_txt.split('\n') if r.find(disk_path)==0 and len(disk_path) <= r.find('%d :'%partno) <= len(disk_path)+5]
+    if relevant_lines not in (None, []):
+#        relevant_line = relevant_lines[0]
+#        print("disk %s partno %d ==> %s" % (disk_path, partno, relevant_line.split(' ')[0]))
+        return True
+    return False
+
+
+def OLD_BUT_GOOD_partition_exists(disk_path, partno):
     disk_path = os.path.realpath(disk_path)
-#     res, __, ___ = call_binary(['bash','-c', '''
-# disk_path=%s
-# partno=%d
-# fullpartitiondev=$(sfdisk -d $disk_path | grep -x "$disk_path.*$partno :.*" | head -n1 | cut -d' ' -f1)
-# [ -e "$fullpartitiondev" ] && exit 0 || exit 1
-#     '''% (disk_path, partno)])
     res = os.system('''
 disk_path=%s
 partno=%d
 fullpartitiondev=$(sfdisk -d $disk_path | grep -x "$disk_path.*$partno :.*" | head -n1 | cut -d' ' -f1)
 [ -e "$fullpartitiondev" ] && exit 0 || exit 1
     ''' % (disk_path, partno)) 
-    # if resA != resB:
-    #     raise SystemError( "resA and resB differ. You suck at programming.")
     if res == 0:
         return True
     else:
@@ -706,7 +696,7 @@ def add_partition_SUB(
     size_in_MiB=None,
     debug=False,
 ):
-    """Low-level subreoutine to add partition to specified disk.
+    """Low-level subroutine to add partition to specified disk.
 
     Note:
         Do not call me. Call add_partition() instead.
@@ -790,6 +780,71 @@ def add_partition_SUB(
         )
     )
     return res
+
+
+
+
+# def add_partition_SUB(
+#     disk_path,
+#     partno,
+#     start,
+#     end,
+#     fstype,
+#     with_partno_Q=True,
+#     size_in_MiB=None,
+#     debug=False,
+# ):
+#     """Low-level subroutine to add partition to specified disk.
+#
+#     Note:
+#         Do not call me. Call add_partition() instead.
+#
+#     Args:
+#         disk_path (:obj:`str`): The /dev entry of the disk in
+#             question. This may be almost any /dev entry (including
+#             softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
+#             but I'll always deduce the real entry (probably /dev/sdX
+#             or /dev/mmcblkN) and use that as my node path.
+#         partno (int): The partition#.
+#         start (int): The first sector of the partition.
+#         end (int): The final cylinder of the partition.
+#         fstype (:obj:`str`): The hex code for fdisk to set the
+#             filesystem type, broadly speaking.
+#         size_in_MiB (int, optional): The size of the partition in mibibibbly
+#             whatever.
+#
+#     Returns:
+#         None.
+#
+#     Raises:
+#         ValueError: Bad parameters supplied.
+#
+#     """
+#     from my.disktools.disks import sfdisk_compatible_text_line
+#     disk_path = os.path.realpath(disk_path)
+#     if debug:
+#         print(
+#             "add_partition_SUB() -- disk_path=%s; partno=%s; start=%s; end=%s; size_in_MiB=%s"
+#             % (str(disk_path), str(partno), str(start), str(end), str(size_in_MiB))
+#         )
+#     if end is not None and size_in_MiB is not None:
+#         raise ValueError(
+#             "Specify either end=... or size_in_MIB... but don't specify both"
+#         )
+#     from my.disktools.disks import Disk
+#     d = Disk(disk_path)
+#     sftxt = d.dump()
+#     sftxt += sfdisk_compatible_text_line(node='{node}{ppp}{partno}'.format( 
+#                                          node=d.node, ppp='p' if (d.node.startswith('/dev/loop')  or d.node.startswith('/dev/mmcblk')) else ''), 
+#                                          start=start, size=end-start, fstype=fstype, partno=partno)
+#     retcode, stdout_txt, stderr_txt = call_binary(['sfdisk','-a',d.node], sftxt)
+#     call_binary(['partprobe',disk_path])
+#     if debug is True and retcode != 0:
+#         print("Warning --- failed to create partition")
+#         print("stdout:", stdout_txt)
+#         print("stderr:", stderr_txt)
+#     return retcode
+        
 
 
 def add_partition(
@@ -893,7 +948,7 @@ def add_partition(
             disk_path, partno, start, end, fstype, debug=debug, size_in_MiB=size_in_MiB
         )
     try:
-        pause_until_true(timeout=15, test_func=(lambda x=disk_path, y=partno: partition_exists(x,y)),
+        pause_until_true(timeout=5, test_func=(lambda x=disk_path, y=partno: partition_exists(x,y)),
                                       nudge_func=(lambda x=disk_path: call_binary(['partprobe', x])))
     except TimeoutError as e:
         raise PartitionWasNotCreatedError(
@@ -949,9 +1004,9 @@ def partition_paths(partition):
 def partition_namedtuple(node):
     """Use sfdisk to get info; enhance it w/ more info; return it as a namedtiple.
 
-    The specified node, a /dev string, will be sent to sfdisk, fdisk, etc. and
-    so on. The result is stored in a JSON quasi-dictionary. Then, it is turned
-    into a namedtuple and returned by me.
+    The specified node, a /dev string or image path, will be sent to sfdisk, 
+    fdisk, etc. and so on. The result is stored in a JSON quasi-dictionary. Then,
+    it is turned into a namedtuple and returned by me.
 
     Example:
         Ask partition_paths() for an enhanced amedtuple associated with /dev/sda1::
@@ -975,26 +1030,44 @@ def partition_namedtuple(node):
         ValueError: Path doesn't exist.
 
     """
+    res = dev_namedtuple(node) if node.startswith('/dev/') else image_namedtuple(node)
+    if res is None:
+        raise ValueError("Partition {node} cannot be found/analyzed".format(node=node))
+    return res
+
+def image_namedtuple(node):
+    """Get info on partition (in disk image); enhance it w/ more info; return namedtiple."""
+    if not os.path.isfile(os.path.realpath(node.rstrip('01234567890'))):
+        raise ValueError("File %s does not list this partition" % node)
+    imgfile = node.rstrip('01234567890')
+    if not os.path.exists(imgfile):
+        raise ValueError("File %s does not list this partition" % node)
+    return find_matching_namedtuple(imgfile, node)
+
+
+def dev_namedtuple(node):
+    """Get info on partition (/dev entry); enhance it w/ more info; return namedtiple."""
+    from my.disktools.disks import all_disk_paths
     if not os.path.exists(node):
         raise ValueError("Partition devpath %s does not exist" % node)
-    from my.disktools.disks import (
-        all_disk_paths,
-        enhance_the_sfdisk_output,
-        sfdisk_output,
-    )
-
     for this_disk_path in all_disk_paths():
-        json_rec = sfdisk_output(this_disk_path)
-        # Changes are saved to json_rec
-        _ = enhance_the_sfdisk_output(this_disk_path, json_rec)
-        rec = json.loads(
-            json.dumps(json_rec),
-            object_hook=lambda d: namedtuple("X", d.keys())(*d.values()),
-        )
-        for p in rec.partitiontable.partitions:
-            if node in partition_paths(p):
-                return p
+        res = find_matching_namedtuple(the_disk=this_disk_path, the_partition=node)
+        if res is not None:
+            return res
     return None
+
+
+
+def find_matching_namedtuple(the_disk, the_partition):
+    from my.disktools.disks import enhanced_sfdisk_output_rec
+    rec = enhanced_sfdisk_output_rec(the_disk)
+    for p in rec.partitiontable.partitions:
+        if the_partition in partition_paths(p):
+            return p
+    return None
+
+
+
 
 
 def delete_partition(disk_path, partno):
@@ -1031,7 +1104,7 @@ Sorry."
         """sfdisk %s --del %d > /dev/null 2> /dev/null""" % (disk_path, partno)
     )
     try:
-        pause_until_true(timeout=15, test_func=(lambda x=disk_path, y=partno: not partition_exists(x,y)),
+        pause_until_true(timeout=5, test_func=(lambda x=disk_path, y=partno: not partition_exists(x,y)),
                                       nudge_func=(lambda x=disk_path: call_binary(['partprobe', x])))
     except TimeoutError as  e:
         raise PartitionDeletionError(

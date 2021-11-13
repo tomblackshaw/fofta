@@ -75,7 +75,6 @@ class TestOne(unittest.TestCase):
 
     def testSimpleSingleThread(self):
         from my.disktools.disks import threadsafeDisk
-
         d = threadsafeDisk(MY_TESTDISK_PATH)
 
 

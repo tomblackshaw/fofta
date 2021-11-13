@@ -12,7 +12,7 @@ Usage:-
 """
 import os.path
 import sys
-from test import MY_TESTDISK_PATH
+from test import MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE
 import unittest
 
 from my.disktools.disks import is_this_a_disk, disk_namedtuple
@@ -53,11 +53,11 @@ class TestGetDiskRecord_TWO(unittest.TestCase):
 
     def testName(self):
         r = disk_namedtuple(MY_TESTDISK_PATH)
-        if r.partitiontable.id not in (None, ""):
-            self.assertTrue(is_this_a_disk(r.partitiontable.id))
-            self.assertTrue(is_this_a_disk(os.path.realpath(r.partitiontable.id)))
+        if r.partitiontable.myid not in (None, ""):
+            self.assertTrue(is_this_a_disk(r.partitiontable.myid))
+            self.assertTrue(is_this_a_disk(os.path.realpath(r.partitiontable.myid)))
             self.assertEqual(
-                os.path.realpath(r.partitiontable.id),
+                os.path.realpath(r.partitiontable.myid),
                 os.path.realpath(MY_TESTDISK_PATH),
             )
         if r.partitiontable.node not in (None, ""):
@@ -75,12 +75,12 @@ class TestGetDiskRecord_TWO(unittest.TestCase):
                 os.path.realpath(MY_TESTDISK_PATH),
             )
         self.assertEqual(r.partitiontable.unit, "sectors")
-        self.assertEqual(r.partitiontable.disk_label, "dos")
+        self.assertEqual(r.partitiontable.disklabel_type, "dos")
         self.assertEqual(
             0,
             os.system(
-                """fdisk -l {fname} | grep "{hexid}" >/dev/null""".format(
-                    fname=MY_TESTDISK_PATH, hexid=r.partitiontable.disk_id
+                """fdisk -l {fname} | grep "{serno}" >/dev/null""".format(
+                    fname=MY_TESTDISK_PATH, serno=r.partitiontable.serno
                 )
             ),
         )
@@ -103,7 +103,7 @@ class TestGetDiskRecord_TestFSTypeGetterAndSetter(unittest.TestCase):
         from my.disktools.disks import Disk
         from my.disktools.partitions import get_partition_fstype
 
-        d = Disk(MY_TESTDISK_PATH)
+        d = Disk(MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE)
         for fstype in ("83", "81", "83", "82", "80", "82", "83"):
             d.add_partition(partno=1, start=5555, end=9999, fstype=fstype)
             self.assertEqual(
@@ -116,7 +116,7 @@ class TestGetDiskRecord_TestFSTypeGetterAndSetter(unittest.TestCase):
         from my.disktools.disks import Disk
         from my.disktools.partitions import get_partition_fstype, set_partition_fstype
 
-        d = Disk(MY_TESTDISK_PATH)
+        d = Disk(MY_TESTDISK_PATH, RANDOMLY_CHOSEN_PARTTABLETYPE)
         for old_fstype in ("83", "5", "83", "82", "5", "82", "83"):
             for new_fstype in ("83", "5", "83", "82", "5", "82", "83"):
                 d.add_partition(partno=1, start=5555, end=9999, fstype=old_fstype)

@@ -19,30 +19,44 @@ Todo:
 
 """
 
+import sys
+
 from collections import namedtuple
 import json
 import os
 import io
 import subprocess
 
-from my.disktools.both import devdiskbyxxxx_path
+from my.disktools.both import devdiskbyxxxx_path, has_legible_parttable
 from my.disktools.partitions import deduce_partno, add_partition, _FS_EXTENDED
 from my.exceptions import (
     PartitionsOverlapError,
     StartEndAssBackwardsError,
     MissingPriorPartitionError,
     PartitionWasNotCreatedError,
-    DiskIDSettingFailureError,
+    SernoSettingFailureError,
     ExistentPriorPartitionError,
-    WeNeedAnExtendedPartitionError,
+    WeNeedAnExtendedPartitionError, PartitionTableCannotReadError,
     PartitionTableReorderingError, PartitionDeletionError,
 )
 from my.globals import call_binary
+
 import threading
 import time
 
 _disks_dct = {}
 the_threadsafeDisk_lock = threading.Lock()
+
+
+def sfdisk_compatible_text_line(node, start, size, fstype):
+    return """%-10s: start=%12d, size=%12d, type=%s
+""" % (
+                node,
+                start,
+                size,
+                fstype,
+            )
+
 
 
 def threadsafeDisk(disk_path):
@@ -117,7 +131,8 @@ def is_this_a_disk(node, insist_on_this_existence_state=None):
     Raises:
         ValueError: If `node` doesn't exist, or is a softlink to a
             nonexistent file, or is a directory, or has an unfamiliar
-            name structure.
+            name structure, or if I can't tell whether it's a partition
+            or not.
 
     """
     if insist_on_this_existence_state is not None:
@@ -125,7 +140,7 @@ def is_this_a_disk(node, insist_on_this_existence_state=None):
     else:
         exists = os.path.exists(node)
     if node in (None, "/") or not exists:
-        raise ValueError("%s not found" % str(node))
+        raise ValueError("I cannot tell if %s is a disk or not. The file/dir/dev does not exist." % str(node))
     linked_to = os.path.realpath(node)
     search_for_this_stub = os.path.basename(linked_to)
     if node.count("/") > 3 and linked_to.count("/") <= 3:
@@ -150,6 +165,13 @@ def is_this_a_disk(node, insist_on_this_existence_state=None):
         raise ValueError("%s is a directory, not a device")
     elif "zram" in os.path.basename(node):
         return False
+    elif "loop" in os.path.basename(node):
+        retcode, _stdout_txt, _stderr_txt = call_binary(['sfdisk', '-d', node])
+        return True if retcode==0 else False
+#        backfname = call_binary(['losetup','-O', 'BACK-FILE', '/dev/loop5'])[1].strip('\n').split('\n')[-1]
+#        return is_this_a_disk(backfname, insist_on_this_existence_state=insist_on_this_existence_state)
+    elif exists:
+        return has_legible_parttable(node)
     else:
         raise ValueError("I do not know if %s is a disk or not" % node)
 
@@ -168,7 +190,7 @@ def fix_order_of_disk_partitiontable_entries(disk_path):
 
     Returns:
         (int, str, None|str):
-            int: The code returned by sfdisk. 0=success; nonzero=error.
+            int: The code returned by fdisk. 0=success; nonzero=error.
             str: The stdout text.
             None|str: The stderr text.
 
@@ -202,8 +224,8 @@ q
     return (retcode, stdout_txt, stderr_txt)
 
 
-def diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
-    """Retrieve the disk ID, disk size (bytes and sectors), and sector size.
+def serno_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
+    """Retrieve the disk serial#, disk size (bytes and sectors), and sector size.
 
     This subroutine interrogates the disk device path via fdisk and obtains
     the disk ID (its eight-digit hexadecimal string), its size in bytes,
@@ -214,7 +236,7 @@ def diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
 
     Returns:
         tuple (
-            :obj:`str` - A ten-character string, composed of the
+            :obj:`str` - the disk ID: a ten-character string, composed of the
                 prefix '0x' and then eight hexadecimal characters, e.g.
                 "0x1234ABCD".
             int - The maximum capacity of the disk, in bytes.
@@ -236,30 +258,33 @@ def diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
     )
     if retcode != 0:
         print(stderr_txt)
-        print("Warning -- diskid_sizein_...et. - nonzero retcode")
+        print("Warning -- serno_sizein_...et. - nonzero retcode")
     disk_length_in_bytes, lab1, disk_length_in_sectors, lab2 = stdout_txt.split("\n")[
         0
     ].split(" ")[-4:]
-    disk_id = [r for r in stdout_txt.split("\n") if ": 0x" in r][0].split(" ")[-1]
+    try:
+        serno = [r for r in stdout_txt.split("\n") if ": 0x" in r][0].split(" ")[-1]
+    except IndexError:
+        serno = None
     #    just_fdisk_op = subprocess.run(['fdisk', '-l', disk_path], \
     #                                stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
     #    (disk_length_in_bytes, lab1, disk_length_in_sectors, lab2) = \
     #                                just_fdisk_op.stdout.decode('UTF-8').split('\n')[0].split(' ')[-4:]
-    #    disk_id = [r for r in just_fdisk_op.stdout.decode('UTF-8').split('\n') if ': 0x' in r][0].split(' ')[-1]
+    #    serno = [r for r in just_fdisk_op.stdout.decode('UTF-8').split('\n') if ': 0x' in r][0].split(' ')[-1]
     sector_size = int(disk_length_in_bytes) / int(disk_length_in_sectors)
     assert int(sector_size) == float(
         sector_size
     ), "Sector size should be an integer. My disk-analyzing script appears to be broken."
     del lab1, lab2
     return (
-        disk_id,
+        serno,
         int(disk_length_in_bytes),
         int(disk_length_in_sectors),
         int(sector_size),
     )
 
 
-def set_disk_id(disk_path, new_diskid):
+def set_serno(disk_path, new_serno):
     """Set the serial number of the specified disk.
 
     If you run fdisk {disk_path}, you'll see a field that says, "Disk ID: 0x....."
@@ -267,7 +292,7 @@ def set_disk_id(disk_path, new_diskid):
 
     Args:
         disk_path (:obj:`str`): The path (e.g. /dev/sda) of the disk's disk_path.
-        new_diskid (:obj:`str`): A ten-character string, composed of the
+        new_serno (:obj:`str`): A ten-character string, composed of the
             prefix '0x' and then eight hexadecimal characters, e.g.
             "0x1234ABCD".
 
@@ -275,7 +300,7 @@ def set_disk_id(disk_path, new_diskid):
         None
 
     Raises:
-        DiskIDSettingFailureError: Failed to set the disk ID.
+        sernoSettingFailureError: Failed to set the disk ID.
 
     Todo:
         * Add more TODOs
@@ -285,21 +310,21 @@ def set_disk_id(disk_path, new_diskid):
         ["fdisk", disk_path],
         """x
 i
-{new_diskid}
+{new_serno}
 r
 w
 """.format(
-            new_diskid=new_diskid
+            new_serno=new_serno
         ),
     )
     _, __, ___ = call_binary(['partprobe', disk_path])
-    resultant_id = diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)[0]
-    if resultant_id != new_diskid:
+    resultant_id = serno_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)[0]
+    if resultant_id != new_serno:
         # print(retcode)
         # print(stdout_txt)
         # print(stderr_txt)
-        raise DiskIDSettingFailureError(
-            "Failed to set disk ID of {disk_path} to {id}".format(disk_path=disk_path, id=new_diskid)
+        raise SernoSettingFailureError(
+            "Failed to set disk ID of {disk_path} to {serno}".format(disk_path=disk_path, serno=new_serno)
         )
 
 
@@ -334,12 +359,14 @@ def sfdisk_output(disk_path):
         * Add more TODOs
 
     """
-    _, stdout_txt, _stderr_txt = call_binary(
+    retcode, stdout_txt, stderr_txt = call_binary(
         param_lst=["sfdisk", "-J", disk_path], input_str=None
     )
     # if retcode != 0:
     #     print("sfdisk_output({disk_path}) ==>".format(disk_path=disk_path))
     #     print(stderr_txt)
+    if retcode != 0:
+        raise PartitionTableCannotReadError("Unable to read {disk_path} with sfdisk\n{stderr_txt}".format(disk_path=disk_path, stderr_txt=stderr_txt))
     return json.loads(stdout_txt)
 
 
@@ -372,7 +399,11 @@ def all_disk_paths():
         s = f.read().split("\n")
     for r in [r.split(" ")[-1] for r in s]:
         pth = os.path.join("/dev/", r)
-        if r != "" and os.path.exists(pth) and is_this_a_disk(pth):
+        try:
+            is_a_disk = is_this_a_disk(pth) and r != '' and os.path.exists(pth)
+        except ValueError:
+            is_a_disk = False
+        if is_a_disk:
             all_dev_entries.append(pth)
     return all_dev_entries
 
@@ -404,6 +435,41 @@ def namedtuples_for_all_disks():
     return disks
 
 
+
+
+def enhanced_sfdisk_output_rec(node):
+    """Delete the specified partition from the specified disk.
+
+    Note:
+        None.
+
+    Args:
+        disk_path (:obj:`str`): The /dev entry of the disk in
+            question. This may be almost any /dev entry (including
+            softlinks such as /dev/disk/by-{id,partuuid,label,...}/etc.),
+            but I'll always deduce the real entry (probably /dev/sdX
+            or /dev/mmcblkN) and use that as my node path.
+        partno (int, optional): The partition#. If it is unspecified, the
+            next one will be used. For example, if the last partition is #2,
+            then #3 will be the new partition's number.
+
+    Returns:
+        None.
+
+    Raises:
+        PartitionDeletionError: Failed to delete partition.
+    
+    """
+    json_rec = sfdisk_output(node)
+    # Changes are saved to json_rec
+    _ = enhance_the_sfdisk_output(node, json_rec)
+    rec = json.loads(
+        json.dumps(json_rec),
+        object_hook=lambda d: namedtuple("X", d.keys())(*d.values()),
+    )
+    return rec
+
+
 def enhance_the_sfdisk_output(disk_path, json_rec):
     """Add sector size, disk size, etc. to the supplied JSON record.
 
@@ -431,26 +497,31 @@ def enhance_the_sfdisk_output(disk_path, json_rec):
 
     """
     (
-        disk_id,
+        serno,
         disk_size_in_bytes,
         disk_size_in_sectors,
         sector_size,
-    ) = diskid_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)
+    ) = serno_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)
     json_rec["partitiontable"]["sector_size"] = sector_size
     json_rec["partitiontable"]["size_in_bytes"] = disk_size_in_bytes
     json_rec["partitiontable"]["size_in_sectors"] = disk_size_in_sectors
-    json_rec["partitiontable"]["disk_label"] = json_rec["partitiontable"]["label"]
+    json_rec["partitiontable"]["disklabel_type"] = json_rec["partitiontable"]["label"]
     del json_rec["partitiontable"]["label"]
-    json_rec["partitiontable"]["disk_id"] = disk_id
-    for disk_searchby in ("id", "label", "partuuid", "path", "uuid"):
-        json_rec["partitiontable"][disk_searchby] = devdiskbyxxxx_path(
-            disk_path, disk_searchby
+    json_rec["partitiontable"]["serno"] = serno
+    for disk_searchby in ("myid", "label", "partuuid", "path", "uuid"):
+        newval = devdiskbyxxxx_path(
+            disk_path, disk_searchby.replace('my','')
         )
+        if disk_searchby not in json_rec["partitiontable"] \
+        or newval not in (None, ''): 
+            json_rec["partitiontable"][disk_searchby] = newval 
         for partition_rec in json_rec["partitiontable"]["partitions"]:
-            for partition_searchby in ("id", "label", "partuuid", "path", "uuid"):
-                partition_rec[partition_searchby] = devdiskbyxxxx_path(
-                    partition_rec["node"], partition_searchby
-                )
+            for partition_searchby in ("myid", "label", "partuuid", "path", "uuid"):
+                try:
+                    partition_rec[partition_searchby] = devdiskbyxxxx_path(
+                        partition_rec["node"], partition_searchby.replace('my',''))
+                except ValueError:
+                    partition_rec[partition_searchby] = None
     json_rec["partitiontable"]["node"] = disk_path
     return json_rec
 
@@ -486,7 +557,7 @@ def disk_namedtuple(disk_path):
         raise ValueError("Cannot get disk record -- %s not found" % str(disk_path))
     json_rec = sfdisk_output(disk_path)
     # Changes are saved to json_rec
-    _ = enhance_the_sfdisk_output(disk_path, json_rec)
+    _ = enhance_the_sfdisk_output(disk_path, json_rec) 
     res = json.loads(
         json.dumps(json_rec),
         object_hook=lambda d: namedtuple("X", d.keys())(*d.values()),
@@ -494,15 +565,40 @@ def disk_namedtuple(disk_path):
     return res
 
 
+def reset_disk_partition_table(diskdev, pttype):
+    if pttype not in ('dos', 'gpt'):
+        raise ValueError("Only dos or gpt is acceptable.")
+    ptdic = {'gpt':'g', 'irix':'G', 'dos':'o', 'sun':'s'}
+    _retcode, _stdout_txt, stderr_txt = call_binary(['fdisk', diskdev], """
+{ptcode}
+w""".format(ptcode=ptdic[pttype]))
+#    if retcode != 0:
+#        raise ValueError("Cannot give partition table type '%s' to disk '%s'\n%s" % (pttype, diskdev, stderr_txt))
+    os.system("sync;sync;sync;partprobe;sync;sync;sync")
+    j = sfdisk_output(diskdev)
+    if j['partitiontable']['label'] != pttype:
+        raise ValueError("Cannot give partition table type '%s' to disk '%s'\n%s" % (pttype, diskdev, stderr_txt))
+
+
 class Disk:
     """Class instance that wraps around /dev/sda, /dev/mmcblk0, or whichever.
 
     Note:
         None.
+    
+    Example:
+        $ from my.disktools.disks import *
+        $ d = Disk('/root/Armbian_21.08.1_Nanopineo3_focal_current_5.10.60.img')
+        $ d.node
+        '/dev/sda'
+
 
     Args:
         node (:obj:`str`): The path (/dev/etc.) of the disk that
             we care about.
+        new_partition_table (:obj:`str`, optional): The new partition
+            table format. This will wipe the old partition table.
+            Please specify 'dos' or 'gpt' or None.
 
     Returns:
         None.
@@ -515,23 +611,26 @@ class Disk:
         * Add proper read- and write-locking.
 
     """
-
-    def __init__(self, node):
+    def __init__(self, node, new_partition_table=None):
         self._user_specified_node = node
         self._node = os.path.realpath(self._user_specified_node)
-        if not is_this_a_disk(self._user_specified_node):
+        if not os.path.isfile(os.path.realpath(self._node)) and not self._node.startswith('/dev/loop') and not is_this_a_disk(self._user_specified_node):
             raise ValueError("Nope -- %s is not a disk" % self._user_specified_node)
-        self.__cache = None
+        if new_partition_table is not None:
+            if new_partition_table not in ('gpt','dos'):
+                raise ValueError("New partition table type must me dos, gpt, sun, or irix... not {new_partition_table}".format(new_partition_table=new_partition_table))
+            reset_disk_partition_table(diskdev=self._node, pttype=new_partition_table)
         self.update()
+        # if self.disklabel_type != 'dos':
+        #     sys.stderr.write("WARNING --- I have not been tested with a %s partition table\n" % self.disklabel_type)
 
     def __repr__(self):
         return 'Disk(node="%s")' % self.node
 
     def __str__(self):
-        return """fisk_path=%s  id=%s device=%s  unit=%s  partitions:%d""" % (
+        return """node=%s  serno=%s  unit=%s  partitions:%d""" % (
             self.node,
-            self.id,
-            self.device,
+            self.serno,
             self.unit,
             len(self.partitions),
         )
@@ -568,53 +667,55 @@ class Disk:
         from my.disktools.partitions import DiskPartition
         if partprobe:
             self.partprobe()
-        self.__cache = disk_namedtuple(self.node)
-        self._id = self.__cache.partitiontable.id
-        self._device = self.__cache.partitiontable.device
-        self._unit = self.__cache.partitiontable.unit
-        self._disk_label = self.__cache.partitiontable.disk_label
-        self._disk_id = self.__cache.partitiontable.disk_id
-        self._sector_size = self.__cache.partitiontable.sector_size
-        self._size_in_sectors = self.__cache.partitiontable.size_in_sectors
+        self._cache = disk_namedtuple(self.node)
+        self._myid = self._cache.partitiontable.myid
+        self._pddev = self._cache.partitiontable.device # Unused!
+        self._unit = self._cache.partitiontable.unit
+        self._disklabel_type = self._cache.partitiontable.disklabel_type
+        self._serno = self._cache.partitiontable.serno
+        self._sector_size = self._cache.partitiontable.sector_size
+        self._size_in_sectors = self._cache.partitiontable.size_in_sectors
         self._partitions = []
-        for p in self.__cache.partitiontable.partitions:
+        for p in self._cache.partitiontable.partitions:
             self.partitions.append(DiskPartition(p.node))
         if self.overlapping:
             print("Warning -- partitions in %s are overlapping" % self.node)
+        if self._pddev != self.node:
+            print("Warning -- sfdisk said the node is {pddev} but you said it was {node}".format(pddev=self._pddev, node=self.node))
         for p in self.partitions:
             p.update()
 
     @property
-    def disk_id(self):
-        """str: the hexadecimal ID (from sfdisk's output) of the disk itself"""
-        return self._disk_id
+    def serno(self):
+        """str: the ID (from sfdisk's output) of the disk itself"""
+        return self._serno
 
-    @disk_id.setter
-    def disk_id(self, value):
+    @serno.setter
+    def serno(self, value):
         _ = int(value, 16)
         if len(value) != 10 or value[:2] != "0x":
             raise ValueError("%s is an invalid disk id string" % value)
         try:
-            set_disk_id(self.node, value)
+            set_serno(self.node, value)
         finally:
             self.update()
-        assert self._disk_id == value
+        assert self._serno == value
 
-    @disk_id.deleter
-    def disk_id(self):
+    @serno.deleter
+    def serno(self):
         raise AttributeError("Not permitted")
 
     @property
-    def disk_label(self):
+    def disklabel_type(self):
         """str: the /dev/disk/by-label/... (from sfdisk's output) of the disk"""
-        return self._disk_label
+        return self._disklabel_type
 
-    @disk_label.setter
-    def disk_label(self, value):
+    @disklabel_type.setter
+    def disklabel_type(self, value):
         raise AttributeError("Not permitted")
 
-    @disk_label.deleter
-    def disk_label(self):
+    @disklabel_type.deleter
+    def disklabel_type(self):
         raise AttributeError("Not permitted")
 
     @property
@@ -628,19 +729,6 @@ class Disk:
 
     @node.deleter
     def node(self):
-        raise AttributeError("Not permitted")
-
-    @property
-    def id(self):
-        """str: the ID (from sfdisk's output) of the disk itself"""
-        return self._id
-
-    @id.setter
-    def id(self, value):
-        raise AttributeError("Not permitted")
-
-    @id.deleter
-    def id(self):
         raise AttributeError("Not permitted")
 
     @property
@@ -658,18 +746,18 @@ class Disk:
     def unit(self):
         raise AttributeError("Not permitted")
 
-    @property
-    def device(self):
-        """str: the /dev path of the disk itself"""
-        return self._device
-
-    @device.setter
-    def device(self, value):
-        raise AttributeError("Not permitted")
-
-    @device.deleter
-    def device(self):
-        raise AttributeError("Not permitted")
+    # @property
+    # def device(self):
+    #     """str: the /dev path of the disk itself"""
+    #     return self._device
+    #
+    # @device.setter
+    # def device(self, value):
+    #     raise AttributeError("Not permitted")
+    #
+    # @device.deleter
+    # def device(self):
+    #     raise AttributeError("Not permitted")
 
     @property
     def partitions(self):
@@ -870,6 +958,8 @@ class Disk:
 
         """
         from my.disktools.partitions import delete_partition, partition_exists
+        if type(partno) is not int:
+            raise ValueError("Please specify a partition number that is an integer")
         if partition_exists(self.node, partno):
             if partno >= 5 and partition_exists(self.node, partno + 1):
                 raise PartitionDeletionError(
@@ -892,20 +982,15 @@ the order of the logical partitions." % (partno + 1, self.node, partno))
             :obj:`str`: Human-readable info dump.
 
         """
-        outtxt = """label: {disk_label}
-label-id: {disk_id}
+        outtxt = """label: {disklabel_type}
+label-id: {serno}
 device: {node}
 unit: sectors
 
 """.format(
-            disk_label=self.disk_label, disk_id=self.disk_id, node=self.node
+            disklabel_type=self.disklabel_type, serno=self.serno, node=self.node
         )
         for p in self.partitions:
-            outtxt += """%-10s: start=%12d, size=%12d, type=%s
-""" % (
-                p.node,
-                p.start,
-                p.size,
-                p.fstype,
-            )
+            outtxt += sfdisk_compatible_text_line(p.node, p.start, p.size, p.fstype)
         return outtxt
+

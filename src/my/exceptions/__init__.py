@@ -312,8 +312,31 @@ class PartitionTableReorderingError(PartitionModificationError):
         self.code = code
 
 
-class DiskIDSettingFailureError(MyDisktoolsOtherException):
-    """Raised if set_disk_id() failed to set the disk ID.
+class PartitionTableCannotReadError(PartitionModificationError):
+    """Raised if we cannot read/interrogate partition table.
+
+    This isn't used widely. It is a low-level error.
+
+    Note:
+        None.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
+        self.msg = msg
+        self.code = code
+
+
+class SernoSettingFailureError(MyDisktoolsOtherException):
+    """Raised if set_serno() failed to set the serial number of the disk.
 
     Note:
         None.
@@ -417,7 +440,6 @@ class DestinationDeviceTooSmallError(UnpopulatedWorkingCopyCreationException):
         code (int): Exception error code.
 
     """
-
     def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
@@ -439,7 +461,6 @@ class DestinationImageWriteError(UnpopulatedWorkingCopyCreationException):
         code (int): Exception error code.
 
     """
-
     def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
@@ -460,7 +481,6 @@ class FilesystemCopyError(UnpopulatedWorkingCopyCreationException):
         code (int): Exception error code.
 
     """
-
     def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
@@ -482,7 +502,6 @@ class MBRCopyError(UnpopulatedWorkingCopyCreationException):
         code (int): Exception error code.
 
     """
-
     def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
@@ -504,11 +523,31 @@ class DestinationPaddingWriteError(UnpopulatedWorkingCopyCreationException):
         code (int): Exception error code.
 
     """
-
     def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
         self.msg = msg
         self.code = code
 
+
+
+
+class FilesystemFormattingError(UnpopulatedWorkingCopyCreationException):
+    """Failed to pad out the destination image and make it the right size.
+
+    Note:
+        None.
+
+    Args:
+        msg (str): Human readable string describing the exception.
+        code (:obj:`int`, optional): Error code.
+
+    Attributes:
+        msg (str): Human readable string describing the exception.
+        code (int): Exception error code.
+
+    """
+    def __init__(self, msg, code=None):  # pylint: disable=super-init-not-called
+        self.msg = msg
+        self.code = code
 
 
 

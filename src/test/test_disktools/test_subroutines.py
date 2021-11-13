@@ -19,7 +19,7 @@ from test.test_disktools import (
     SAMPLE_LIST_OF_DRIVES_STUBS,
     SAMPLE_LIST_OF_DODGY_STUBS,
 )
-from test import MY_TESTDISK_PATH
+from test import MY_TESTDISK_PATH,  RANDOMLY_CHOSEN_PARTTABLETYPE
 from my.disktools.partitions import (
     delete_all_partitions,
     add_partition,
@@ -38,7 +38,7 @@ def make_disk_have_one_randomizerd_partitionom_partition(disk_path, partno):
     )
     from my.disktools.disks import Disk
 
-    partition = Disk(disk_path).partitions[0]
+    partition = Disk(disk_path, RANDOMLY_CHOSEN_PARTTABLETYPE).partitions[0]
     assert partition.partno == partno
     return (disk_path, start, end, fstype, partno, partition)
 
@@ -73,7 +73,7 @@ class TestIsThisADisk_ONE(unittest.TestCase):
         for stub in SAMPLE_LIST_OF_DODGY_STUBS:
             node = "/dev/%s" % (stub)
             with self.assertRaises(ValueError):
-                _ = is_this_a_disk(node, insist_on_this_existence_state=True)
+                _ = is_this_a_disk(node, insist_on_this_existence_state=False)
 
 
 class TestIsThisADisk_TWO(unittest.TestCase):
@@ -181,7 +181,7 @@ class TestPartitionNamedtupleFunction(unittest.TestCase):
         ) = make_disk_have_one_randomizerd_partitionom_partition(MY_TESTDISK_PATH, 1)
         self.assertEqual(start, partition_namedtuple(partition.node).start)
 
-    def testPId(self):
+    def testPMyId(self):
         (
             disk_path,
             start,
@@ -190,7 +190,7 @@ class TestPartitionNamedtupleFunction(unittest.TestCase):
             pno,
             partition,
         ) = make_disk_have_one_randomizerd_partitionom_partition(MY_TESTDISK_PATH, 1)
-        self.assertEqual(partition.id, partition_namedtuple(partition.node).id)
+        self.assertEqual(partition.myid, partition_namedtuple(partition.node).myid)
 
     def testPUUID(self):
         (

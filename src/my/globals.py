@@ -21,6 +21,8 @@ import string
 import time
 
 
+
+
 def generate_random_string(length):
     """Generate a N-chars-long random alphanumeric string"""
     x = "".join(

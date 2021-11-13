@@ -4,42 +4,38 @@ Created on Nov 2, 2021
 
 @author: Tom Blackshaw
 """
-from my.disktools.disks import is_this_a_disk, Disk
+#from my.disktools.partitions import DiskPartition, partition_namedtuple
+import os
+from my.globals import call_binary
 
 
 
 
-def my_copy_of_TestCreate12123():
-    MY_TESTDISK_PATH='/dev/sda'
-    assert(is_this_a_disk(MY_TESTDISK_PATH))
-    d = Disk(MY_TESTDISK_PATH)
-    d.delete_all_partitions()
-    if [] != d.partitions:
-        print("WARNING --- TestCreatte12123 -- testName --- some partitions exist already")
-    if d.partitions != d.partitions:
-        print("WARNING --- TestCreatte12123 -- testName --- d=", d.partitions, "but self.disk=", d.partitions)
-    d.add_partition(partno=1, size_in_MiB=100)
-    d.add_partition(partno=2, size_in_MiB=100)
-    try:
-        d.add_partition(partno=1, size_in_MiB=100)
-        raise SystemError("WE SHOULD FAIL HERE")
-    except ValueError:
-        pass
-    try:
-        d.add_partition(partno=2, size_in_MiB=100)
-        raise SystemError("WE SHOULD FAIL HERE")
-    except ValueError:
-        pass
-    d.add_partition(partno=3, size_in_MiB=100)
-    d.delete_all_partitions()
 
 
 if __name__ == '__main__':
-#    os.environ['PATH'] = os.environ['PATH']+':'+os.getenv('PATH')
-#    import pydevd; pydevd.settrace("192.168.0.139", port=5678, stdoutToServer=True, stderrToServer=True)
-    for i in range(0,10):
-        my_copy_of_TestCreate12123()
-        print("%%%d complete" % (i*10))
-    print("Done.")
-
+    os.environ['PATH'] = os.environ['PATH']+':'+os.getenv('PATH')
+    import pydevd; pydevd.settrace("192.168.0.139", port=5678, stdoutToServer=True, stderrToServer=True)
+    MY_DISK_IMGSIZE_IN_MB = 160
+    MY_DISK_LOOPDEV  = '/dev/loop5'
+    MY_DISK_IMGFILE = '/tmp/.fofta.temp.image.file'
+    from my.disktools.disks import Disk
+    s = call_binary(['df','-m','/tmp'])[1].split('\n')[1].split('tmpfs')[1].strip(' ')
+    if int(s.split(' ')[0]) < MY_DISK_IMGSIZE_IN_MB:
+        MY_DISK_IMGFILE = MY_DISK_IMGFILE.replace('/tmp/','/root/')
+    retcode, stdout_txt, stderr_txt = call_binary(['dd', 'bs=1024k', 'if=/dev/zero', 'of='+MY_DISK_IMGFILE,
+                                                   'count=%d'%MY_DISK_IMGSIZE_IN_MB])
+    retcode, stdout_txt, stderr_txt = call_binary(['losetup', '-d', MY_DISK_LOOPDEV])
+    retcode, stdout_txt, stderr_txt = call_binary(['losetup', MY_DISK_LOOPDEV, MY_DISK_IMGFILE])
+    os.system("partprobe " + MY_DISK_LOOPDEV)
+    d = Disk(MY_DISK_LOOPDEV, new_partition_table='dos')
+    try:
+        d.add_partition()
+    except AttributeError:
+        pass   
+    # nt =    partition_namedtuple(d.node)
+    # p = DiskPartition(d._cache.partitiontable.partitions[0].node)
+    
+    
+    
 
