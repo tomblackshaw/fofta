@@ -876,7 +876,7 @@ class Disk:
             raise ValueError(
                 "Partition %d exists already. I cannot create two of them." % partno
             )
-        if partno >= 5:
+        if partno >= 5 and self.disklabel_type == _DOS:
             pass
         # If partition# is 2, 3, or 4, we'll run some 'start'/'end' checks.
         else:
@@ -899,9 +899,8 @@ class Disk:
                     ].start - 1
                 except IndexError:
                     pass
-        if partno >= 5 and [] == [
-            p for p in self.partitions if p.fstype == _FS_EXTENDED
-        ]:
+        if partno >= 5 and self.disklabel_type == 'dos' and \
+                    _DOS_EXTENDED not in [p.fstype for p in self.partitions]:
             raise WeNeedAnExtendedPartitionError(
                 "Please create an extended partition first."
             )
