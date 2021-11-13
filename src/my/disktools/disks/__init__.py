@@ -28,7 +28,7 @@ import io
 import subprocess
 
 from my.disktools.both import devdiskbyxxxx_path, has_legible_parttable
-from my.disktools.partitions import deduce_partno, add_partition, _FS_EXTENDED
+from my.disktools.partitions import deduce_partno, add_partition, _DOS_EXTENDED
 from my.exceptions import (
     PartitionsOverlapError,
     StartEndAssBackwardsError,
@@ -39,7 +39,7 @@ from my.exceptions import (
     WeNeedAnExtendedPartitionError, PartitionTableCannotReadError,
     PartitionTableReorderingError, PartitionDeletionError,
 )
-from my.globals import call_binary, _GPT, _DOS
+from my.globals import call_binary, _GPT, _DOS, _DOS_EXTENDED
 
 import threading
 import time

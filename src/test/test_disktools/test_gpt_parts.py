@@ -21,7 +21,7 @@ from my.disktools.partitions import (
     add_partition
 )
 from my.exceptions import PartitionWasNotCreatedError
-from my.globals import call_binary, _GPT, _DOS
+from my.globals import call_binary, _GPT, _DOS, _DOS_EXTENDED
 from my.disktools.disks import Disk
 
 

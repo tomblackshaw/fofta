@@ -17,11 +17,11 @@ Disk() is not threadsafe, but threadsafeDisk() is.
 
 Attributes:
 
-    _FS_DEFAULT (:obj:`str`): The two- or three-char code that fdisk utilizes
-        to indicate an ext4fs partition.
-
-    _FS_EXTENDED (:obj:`str`): The two- or three-char code that fdisk utilizes
-        to indicate an external partition.
+    # _DOS_DEFAULT (:obj:`str`): The two- or three-char code that fdisk utilizes
+    #     to indicate an ext4fs partition.
+    #
+    # _DOS_EXTENDED (:obj:`str`): The two- or three-char code that fdisk utilizes
+    #     to indicate an external partition.
         
 Todo:
     * Better TODO lists
@@ -50,14 +50,12 @@ from my.exceptions import (
     PartitionAttributeReadFailureError,
     PartitionTableReorderingError,
 )
-from my.globals import call_binary, pause_until_true
+from my.globals import call_binary, pause_until_true, _DOS_DEFAULT, _DOS_EXTENDED, _GPT_DEFAULT
 import subprocess
 import time
 import sys
 
 
-_FS_EXTENDED = "5"
-_FS_DEFAULT = "83"
 
 
 class DiskPartition:
@@ -390,8 +388,8 @@ def overlapping(disk_path, hypothetically=None):
                 a != b
                 and startA <= endB
                 and endA >= startB
-                and fstypeA != _FS_EXTENDED
-                and fstypeB != _FS_EXTENDED
+                and fstypeA != _DOS_EXTENDED
+                and fstypeB != _DOS_EXTENDED
             ):
                 return True
     del partnoA, partnoB
@@ -472,7 +470,7 @@ fullpartitiondev=$(sfdisk -d $disk_path | grep -x "$disk_path.*$partno :.*" | he
     
 
 def get_partition_fstype(disk_path, partno):
-    """Get partition type -- '83', '5', ...? -- of partno# of the disk.
+    """Get partition type of partno# of the disk.
 
     Note:
         None.
@@ -486,7 +484,8 @@ def get_partition_fstype(disk_path, partno):
         partno (int): The partition#.
 
     Returns:
-        :obj:`str`: What was found.
+        :obj:`str`: What was found: _DOS_DEFAULT, _DOS_EXTENDED, or
+            GPT-compatible hyphenated hex string.
 
     """
     from my.disktools.disks import is_this_a_disk
@@ -658,7 +657,7 @@ disk_path=%s partno=%d fieldno=%d"
 
 
 def set_partition_fstype(disk_path, partno, fstype):
-    """Set partition type -- '83', '5', ...? -- of partno# of the disk.
+    """Set partition type -- _DOS_EXTENDED, _DOS_DEFAULT, ...? -- of partno# of the disk.
 
     Note:
         None.
@@ -670,8 +669,8 @@ def set_partition_fstype(disk_path, partno, fstype):
             but I'll always deduce the real entry (probably /dev/sdX
             or /dev/mmcblkN) and use that as my node path.
         partno (int): The partition#.
-        fstype (:obj:`str`): The string (e.g. '5', '83') for the type
-            of the filesystem.
+        fstype (:obj:`str`): The string (e.g. _DOS_EXTENDED, _DOS_DEFAULT, or
+            a GPT-compatible hyphenated hexstring) for the type of the filesystem.
 
     Returns:
         None.
@@ -752,7 +751,7 @@ def add_partition_SUB(
         res = os.system(
             """echo "p\nn\n%s\n%s\n%s\n%s\nw" | fdisk %s %s"""
             % (
-                "e" if fstype == _FS_EXTENDED else "l" if partno >= 5 else "p",
+                "e" if fstype == _DOS_EXTENDED else "l" if partno >= 5 else "p" if disklabel_type == "dos" else "",
                 "" if not partno else str(partno),
                 "" if not start else str(start),
                 "" if not end_str else end_str,
@@ -764,7 +763,7 @@ def add_partition_SUB(
         res = os.system(
             """echo "p\nn\n%s\n%s\n%s\nw" | fdisk %s %s"""
             % (
-                "e" if fstype == _FS_EXTENDED else "l" if partno >= 5 else "p",
+                "e" if fstype == _DOS_EXTENDED else "l" if partno >= 5 else "p" if disklabel_type == "dos" else "",
                 "" if not start else str(start),
                 "" if not end_str else end_str,
                 disk_path,
@@ -893,7 +892,7 @@ def add_partition(
             "Specify either end=... or size_in_MIB... but don't specify both"
         )
     if fstype is None:
-        fstype = _FS_DEFAULT
+        fstype = _DOS_DEFAULT
     disk_path = os.path.realpath(disk_path)
     if debug:
         sys.stderr.write(
@@ -1015,7 +1014,7 @@ def partition_namedtuple(node):
             $ node = '/dev/sda1'
             $ t = partition_namedtuple(node)
             $ t
-            X(node='/dev/sda1', start=2048, size=125040640, type='83',
+            X(node='/dev/sda1', start=2048, size=125040640, type=_DOS_DEFAULT,
                 id=None, label=None, partuuid=None, path=None, uuid=None)
 
     Note:

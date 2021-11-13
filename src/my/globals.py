@@ -23,6 +23,9 @@ import time
 
 _DOS = 'dos'
 _GPT = 'gpt'
+_DOS_EXTENDED = "5" 
+_DOS_DEFAULT = "83"
+_GPT_DEFAULT = "20"
 
 
 

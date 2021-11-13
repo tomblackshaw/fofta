@@ -16,7 +16,7 @@ from my.globals import _DOS, _GPT
 import unittest
 
 from my.disktools.disks import Disk, is_this_a_disk, set_serno
-from my.disktools.partitions import partition_exists, _FS_EXTENDED
+from my.disktools.partitions import partition_exists, _DOS_EXTENDED
 from my.exceptions import (
     StartEndAssBackwardsError,
     MissingPriorPartitionError,
@@ -183,15 +183,15 @@ class TestMakeFourAndFiddleWithP2(unittest.TestCase):
         self.assertEqual(self.disk.partitions[2].partno, 3)
         self.assertEqual(self.disk.partitions[3].partno, 4)
         self.disk.delete_partition(2)
-        self.disk.add_partition(2, fstype=_FS_EXTENDED)
+        self.disk.add_partition(2, fstype=_DOS_EXTENDED)
         self.disk.delete_partition(2)
-        self.disk.add_partition(2, fstype=_FS_EXTENDED, size_in_MiB=128)
+        self.disk.add_partition(2, fstype=_DOS_EXTENDED, size_in_MiB=128)
         self.disk.delete_partition(2)
         self.assertEqual(self.disk.partitions[0].partno, 1)
         self.assertEqual(self.disk.partitions[1].partno, 3)
         self.assertEqual(self.disk.partitions[2].partno, 4)
         with self.assertRaises(ValueError):
-            self.disk.add_partition(2, fstype=_FS_EXTENDED, end=299999, size_in_MiB=256)
+            self.disk.add_partition(2, fstype=_DOS_EXTENDED, end=299999, size_in_MiB=256)
 
 
 class TestLogicalPartitions_ONE(unittest.TestCase):
@@ -212,7 +212,7 @@ class TestLogicalPartitions_ONE(unittest.TestCase):
         d.add_partition(size_in_MiB=1024)
         d.add_partition(size_in_MiB=1024)
         d.add_partition(size_in_MiB=1024)
-        d.add_partition(fstype=_FS_EXTENDED)
+        d.add_partition(fstype=_DOS_EXTENDED)
         for partno in range(1,5):
             self.assertTrue(partition_exists(d.node, partno), "Partition #%d of %s does not exist, even though I just created it." % (partno, d.node))
         for partno in range(5, upperlimit+1):
@@ -249,7 +249,7 @@ class TestLogicalPartitions_ONE(unittest.TestCase):
         with self.assertRaises(WeNeedAnExtendedPartitionError):
             self.disk.add_partition()
         self.disk.delete_partition(4)
-        self.disk.add_partition(fstype=_FS_EXTENDED)
+        self.disk.add_partition(fstype=_DOS_EXTENDED)
         self.disk.add_partition(5, size_in_MiB=256)
         self.assertTrue(partition_exists(self.disk.node, 5))
         self.disk.delete_partition(5)
@@ -316,7 +316,7 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.disk.add_partition(size_in_MiB=1024)
         self.disk.add_partition(size_in_MiB=1024)
         self.disk.add_partition(size_in_MiB=1024)
-        self.disk.add_partition(fstype=_FS_EXTENDED)
+        self.disk.add_partition(fstype=_DOS_EXTENDED)
 
     def tearDown(self):
         self.disk.delete_all_partitions()

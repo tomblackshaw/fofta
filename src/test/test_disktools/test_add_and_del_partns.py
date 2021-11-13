@@ -126,7 +126,7 @@ class TestOverlappingSubroutine(unittest.TestCase):
         d.delete_all_partitions()
         d.add_partition(partno=1, start=5000, end=9990)
         d.add_partition(partno=2, start=10000, end=14990)
-        overlapping(d.node, [1, 5000, 9990, '83'])
+        overlapping(d.node, [1, 5000, 9990, _DOS_DEFAULT])
         """
         self.disk.add_partition(partno=1, start=5000, end=9990)
         self.disk.add_partition(partno=2, start=10000, end=14990)
