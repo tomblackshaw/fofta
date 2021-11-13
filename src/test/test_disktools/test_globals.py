@@ -26,7 +26,8 @@ Todo:
 import os
 import random
 import sys
-from test import MY_TESTDISK_PATH, _DOS
+from test import MY_TESTDISK_PATH
+from my.globals import _DOS, _GPT
 import unittest
 from my.globals import call_binary, generate_random_string, pause_until_true
 

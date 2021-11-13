@@ -11,7 +11,8 @@ Usage:-
 """
 import os
 import sys
-from test import MY_TESTDISK_PATH, _DOS
+from test import MY_TESTDISK_PATH
+from my.globals import _DOS, _GPT
 import unittest
 
 from my.disktools.disks import Disk, is_this_a_disk, set_serno

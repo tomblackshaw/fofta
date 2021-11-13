@@ -11,6 +11,7 @@ Usage:-
 
 """
 import os
+from my.globals import _DOS, _GPT
 import sys
 import unittest
 from my.disktools.disks import is_this_a_disk, Disk
@@ -19,7 +20,7 @@ from test.test_disktools import (
     SAMPLE_LIST_OF_DRIVES_STUBS,
     SAMPLE_LIST_OF_DODGY_STUBS,
 )
-from test import MY_TESTDISK_PATH,  _DOS
+from test import MY_TESTDISK_PATH
 from my.disktools.partitions import (
     delete_all_partitions,
     add_partition,

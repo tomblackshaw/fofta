@@ -11,7 +11,8 @@ Usage:-
 import os
 import random
 import sys
-from test import MY_TESTDISK_PATH, _DOS
+from test import MY_TESTDISK_PATH
+from my.globals import _DOS, _GPT
 import unittest
 from my.disktools.partitions import (
     partition_exists,
