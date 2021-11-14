@@ -41,9 +41,9 @@ class TestAAADiskClassCreation(unittest.TestCase):
 
     def testName(self):
         self.assertTrue(is_this_a_disk(MY_TESTDISK_PATH))
-        disk = Disk(MY_TESTDISK_PATH, _DOS)
+        d= Disk(MY_TESTDISK_PATH)
         for _ in range(3):
-            disk.delete_all_partitions()
+            d.delete_all_partitions()
 
 
 
@@ -53,7 +53,12 @@ class TestBBBDeliberatelyBreakSomething(unittest.TestCase):
         pass
 
     def tearDown(self):
-        pass
+        d = Disk(MY_TESTDISK_PATH)
+        lst = [r for r in d.partitions]
+        for p in d.partitions:
+            self.assertEqual(d.partition(p.partno).partno, p.partno)
+            lst.remove(p)
+        self.assertEqual(lst, [])
 
     def testName(self):
         pass
@@ -84,7 +89,7 @@ class TestCreate12123(unittest.TestCase):
 
     def testName(self):
         d = Disk(MY_TESTDISK_PATH)
-        if [] != d.partitions:
+        if [] != [r for r in d.partitions]:
             print("WARNING --- TestCreatte12123 -- testName --- some partitions exist already")
         if d.partitions != self.disk.partitions:
             print("WARNING --- TestCreatte12123 -- testName --- d=", d.partitions, "but self.disk=", self.disk.partitions)
@@ -104,7 +109,13 @@ class TestCreateFullThenAddOne(unittest.TestCase):
         self.disk.delete_all_partitions()
 
     def tearDown(self):
-        self.disk.delete_all_partitions()
+        d = Disk(MY_TESTDISK_PATH)
+        lst = [r for r in d.partitions]
+        for p in d.partitions:
+            self.assertEqual(d.partition(p.partno).partno, p.partno)
+            lst.remove(p)
+        self.assertEqual(lst, [])
+        d.delete_all_partitions()
 
     def testName(self):
         self.disk.add_partition(partno=1)
@@ -119,7 +130,13 @@ class TestCreateDeliberatelyOverlappingPartitions(unittest.TestCase):
         self.disk.delete_all_partitions()
 
     def tearDown(self):
-        self.disk.delete_all_partitions()
+        d = Disk(MY_TESTDISK_PATH)
+        lst = [r for r in d.partitions]
+        for p in d.partitions:
+            self.assertEqual(d.partition(p.partno).partno, p.partno)
+            lst.remove(p)
+        self.assertEqual(lst, [])
+        d.delete_all_partitions()
 
     def testName(self):
         self.disk.add_partition(partno=1, start=50000, end=99999)
@@ -159,6 +176,11 @@ class TestMakeFourAndFiddleWithP2(unittest.TestCase):
         self.disk.delete_all_partitions()
 
     def tearDown(self):
+        lst = [r for r in self.disk.partitions]
+        for p in self.disk.partitions:
+            self.assertEqual(self.disk.partition(p.partno).partno, p.partno)
+            lst.remove(p)
+        self.assertEqual(lst, [])
         self.disk.delete_all_partitions()
 
     def testName(self):
@@ -201,6 +223,11 @@ class TestLogicalPartitions_ONE(unittest.TestCase):
         self.disk.delete_all_partitions()
 
     def tearDown(self):
+        lst = [r for r in self.disk.partitions]
+        for p in self.disk.partitions:
+            self.assertEqual(self.disk.partition(p.partno).partno, p.partno)
+            lst.remove(p)
+        self.assertEqual(lst, [])
         self.disk.delete_all_partitions()
     
     def testBreakSomething(self):
@@ -218,7 +245,7 @@ class TestLogicalPartitions_ONE(unittest.TestCase):
         for partno in range(5, upperlimit+1):
 #            print("Creating partition #%d" % partno)
             d.add_partition(partno=partno, size_in_MiB=128)
-            pdev = d.partitions[partno-1].node
+            pdev = [r for r in d.partitions][partno-1].node
             if not os.path.exists(pdev):
 #                print("%s does not exist. OK. Waiting for five seconds...")
                 time.sleep(5)
@@ -227,11 +254,12 @@ class TestLogicalPartitions_ONE(unittest.TestCase):
             self.assertTrue(os.path.exists(pdev), "PartDev %s doesn't exist, even though I JUST CREATED it." % pdev)
             for i in range(1, partno+1):
                 self.assertTrue(partition_exists(d.node, i), "Partition #%d of %s does not exist, even though I just created it." % (i, d.node))
+                self.assertEqual(d.partition(partno=i).partno, i)
             for i in range(partno+1, partno+10):
                 self.assertFalse(partition_exists(d.node, i), "Partition #%d of %s exists, but it SHOULDN'T." % (i, d.node))
         for partno in range(upperlimit, 0, -1):
 #            print("Deleting partition #%d" % partno)
-            pdev = d.partitions[partno-1].node
+            pdev = [r for r in d.partitions][partno-1].node
             self.assertTrue(os.path.exists(pdev),  "PartDev %s does not exist. Weird. "% pdev)
             d.delete_partition(partno)
             self.assertFalse(os.path.exists(pdev), "PartDev %s is still there, even though I JUST DELETED it." % pdev)
@@ -277,7 +305,13 @@ class TestSettingDiskID(unittest.TestCase):
         self.disk.delete_all_partitions()
 
     def tearDown(self):
-        self.disk.delete_all_partitions()
+        d = Disk(MY_TESTDISK_PATH)
+        lst = [r for r in d.partitions]
+        for p in d.partitions:
+            self.assertEqual(d.partition(p.partno).partno, p.partno)
+            lst.remove(p)
+        self.assertEqual(lst, [])
+        d.delete_all_partitions()
 
     def testName(self):
         for _ in range(5):
@@ -319,6 +353,11 @@ class TestLogicalPartitions_TWO(unittest.TestCase):
         self.disk.add_partition(fstype=_DOS_EXTENDED)
 
     def tearDown(self):
+        lst = [r for r in self.disk.partitions]
+        for p in self.disk.partitions:
+            self.assertEqual(self.disk.partition(p.partno).partno, p.partno)
+            lst.remove(p)
+        self.assertEqual(lst, [])
         self.disk.delete_all_partitions()
 
     def testMakeFive(self):

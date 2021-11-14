@@ -830,6 +830,14 @@ class Disk:
     @overlapping.deleter
     def overlapping(self):
         raise AttributeError("Not permitted")
+    
+    def partition(self, partno):
+        matches = [p for p in self.partitions if p.partno == partno]
+        if len(matches) == 0:
+            raise AttributeError("Disk {node} does not contain a partition #{partno}".format(node=self.node, partno=partno))
+        if len(matches) > 1:
+            raise AttributeError("Disk {node} contains {howmany} partitions #{partno}. One should be the maximum".format(node=self.node, partno=partno, howmany=len(matches)))
+        return matches[0]
 
     def add_partition(
         self,
