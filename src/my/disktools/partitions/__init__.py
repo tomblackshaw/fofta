@@ -727,7 +727,6 @@ def add_partition_SUB(
 
     """
     disk_path = os.path.realpath(disk_path)
-    res = 0
     if debug:
         sys.stderr.write(
             "add_partition_SUB() -- disk_path=%s; partno=%s; start=%s; end=%s; size_in_MiB=%s\n"
@@ -744,7 +743,7 @@ def add_partition_SUB(
     else:
         end_str = None
     if debug:
-        sys.stderr.write("end_str is", end_str, "\n")
+        sys.stderr.write("end_str is" + end_str + "\n")
         debug_str = ""
     else:
         debug_str = " >/dev/null 2>/dev/null"
@@ -752,28 +751,15 @@ def add_partition_SUB(
     partitiontable_type = get_partitiontable_type(disk_path)
     if fstype is None and partitiontable_type == 'dos':
         fstype = _DOS_DEFAULT
-    if with_partno_Q:
-        res = os.system(
-            """echo "p\nn\n%s\n%s\n%s\n%s\nw" | fdisk %s %s"""
-            % (
-                "e" if fstype == _DOS_EXTENDED else "l" if partno >= 5 else "p" if partitiontable_type == "dos" else "",
-                "" if not partno else str(partno),
-                "" if not start else str(start),
-                "" if not end_str else end_str,
-                disk_path,
-                debug_str,
-            )
-        )
-    else:
-        res = os.system(
-            """echo "p\nn\n%s\n%s\n%s\nw" | fdisk %s %s"""
-            % (
-                "e" if fstype == _DOS_EXTENDED else "l" if partno >= 5 else "p" if partitiontable_type == "dos" else "",
-                "" if not start else str(start),
-                "" if not end_str else end_str,
-                disk_path,
-                debug_str,
-            )
+    res = os.system(
+            """echo "p\nn\n{kind_of_partition}{partno}{start}{end}w" | fdisk {disk_path} {debug_str}""".format(
+                kind_of_partition="e\n" if fstype == _DOS_EXTENDED else "l\n" if partno >= 5 else "p\n" if partitiontable_type == _DOS else "",
+                partno="" if not with_partno_Q else ("%s\n" % ('' if partno is None else str(partno))),
+                start="%s\n" % ('' if start is None else str(start)),
+                end="%s\n" % ('' if end_str is None else str(end_str)),
+                disk_path=disk_path,
+                debug_str=debug_str
+                )
         )
     call_binary(['partprobe',disk_path])
     if fstype == None:
@@ -893,7 +879,7 @@ def add_partition(
         PartitionWasNotCreatedError: Creation of the partition failed.
 
     """
-    from my.disktools.disks import get_partitiontable_type
+    from my.disktools.disks import get_partitiontable_type, disk_namedtuple, get_how_many_partitions
     if overlapping(disk_path):
         raise PartitionsOverlapError(
             "I cannot create a new partition until you've fixed the overlapping old ones."
@@ -923,7 +909,7 @@ def add_partition(
         raise PartitionsOverlapError(
             "We would overlap if we tried to make this partition"
         )
-    if partition_type == _DOS and partno in (1, 5):
+    if (partition_type == _DOS and partno in (1, 5)):
         res = add_partition_SUB(
             disk_path,
             partno,

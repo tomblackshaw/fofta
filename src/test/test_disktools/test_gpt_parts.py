@@ -131,12 +131,71 @@ class TestPartitionCreation(unittest.TestCase):
             d.add_partition(partno=newpartno, start=start_base + 200*newpartno, end=start_base + 200*(newpartno+1))
 
 
+
+class TestRandomOrderCreateAndDelete(unittest.TestCase):
+    _HOW_MANY = 5
+#    _EACH_SIZE = 50
+    
+    def setUp(self):
+        self.disk = Disk(MY_TESTDISK_PATH, _GPT)
+        
+    def tearDown(self):
+        d = self.disk
+        # for i in range(0,20):
+        #     if partition_exists(d.node, i):
+        #         self.assertEqual(d.partition(i).partno, i)
+        # d.delete_all_partitions()
+        
+    def testMakeThemInOrder(self):
+        d = self.disk
+        for partno in range(1, self._HOW_MANY+1):
+            d.add_partition(partno=partno, size_in_MiB=64)
+
+    # def testMakeThemInReverse(self):
+    #     d = self.disk
+    #     for partno in range(self._HOW_MANY, 0, -1):
+    #         d.add_partition(partno=partno,size_in_MiB=self._EACH_SIZE)
+    #
+    # def testMakeThemInRandomOrder(self):
+    #     d = self.disk
+    #     all_entries = [r for r in range(1, self._HOW_MANY+1)]
+    #     random.shuffle(all_entries)
+    #     for partno in all_entries:
+    #         d.add_partition(partno=partno,size_in_MiB=self._EACH_SIZE)
+
+    def testMakeThemRandomlyInProperPartitionTableOrder(self):
+        d = self.disk
+        self.assertEqual(d.partitions, [])
+        all_entries = [r for r in range(1, self._HOW_MANY+1)]
+        random.shuffle(all_entries)
+        for partno in all_entries:
+            d.add_partition(partno=partno, start=65536+partno*65536, end=65536+(partno+1)*65536-1)
+
+    def testMakeThemSequentiallyInProperPartitionTableOrder(self):
+        d = self.disk
+        self.assertEqual(d.partitions, [])
+        for partno in range(1, self._HOW_MANY+1):
+            d.add_partition(partno=partno, start=65536+partno*65536, end=65536+(partno+1)*65536-1)
+
+
+        
 '''
 from my.globals import call_binary, _GPT, _DOS
 from my.disktools.disks import Disk, get_serno, set_serno
+from my.disktools.partitions import add_partition_SUB
 from test import MY_TESTDISK_PATH
 import random
 d = Disk(MY_TESTDISK_PATH, _GPT)
+d.delete_all_partitions()
+partno=3
+add_partition_SUB(disk_path=d.node, partno=partno, start=partno*65536, end=(partno+1)*65536-1, fstype=None, debug=True)
+
+
+ get_how_many_partitions(disk_path) 
+ 
+
+
+d.add_partition(debug=True, partno=partno, start=2048+partno*65536, end=2048+(partno+1)*65536-1)
 d.add_partition(size_in_MiB=200)
 d.add_partition(size_in_MiB=200)
 d.add_partition(size_in_MiB=200)

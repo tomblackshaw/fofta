@@ -39,7 +39,7 @@ from my.exceptions import (
     WeNeedAnExtendedPartitionError, PartitionTableCannotReadError,
     PartitionTableReorderingError, PartitionDeletionError,
 )
-from my.globals import call_binary, _GPT, _DOS, _DOS_EXTENDED
+from my.globals import call_binary, _GPT, _DOS
 
 import threading
 import time
@@ -580,6 +580,10 @@ def disk_namedtuple(disk_path):
 
 def get_partitiontable_type(disk_path):
     return sfdisk_output(disk_path)['partitiontable']['label']
+
+
+def get_how_many_partitions(disk_path):
+    return len(disk_namedtuple(disk_path).partitiontable.partitions)
 
 
 def reset_disk_partition_table(diskdev, pttype):
