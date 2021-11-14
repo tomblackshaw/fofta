@@ -50,7 +50,8 @@ from my.exceptions import (
     PartitionAttributeReadFailureError,
     PartitionTableReorderingError,
 )
-from my.globals import call_binary, pause_until_true, _DOS_DEFAULT, _DOS_EXTENDED, _GPT_DEFAULT
+from my.globals import call_binary, pause_until_true, _DOS_DEFAULT, _DOS_EXTENDED, _GPT_DEFAULT,\
+    _DOS
 import subprocess
 import time
 import sys
@@ -391,7 +392,7 @@ def overlapping(disk_path, hypothetically=None):
                 and fstypeA != _DOS_EXTENDED
                 and fstypeB != _DOS_EXTENDED
             ):
-                return True
+                return True # FIXME: Test w/ GPT partitiontable 
     del partnoA, partnoB
     return False
 
@@ -729,7 +730,7 @@ def add_partition_SUB(
     res = 0
     if debug:
         sys.stderr.write(
-            "add_partition_SUB() -- disk_path=%s; partno=%s; start=%s; end=%s; size_in_MiB=%s"
+            "add_partition_SUB() -- disk_path=%s; partno=%s; start=%s; end=%s; size_in_MiB=%s\n"
             % (str(disk_path), str(partno), str(start), str(end), str(size_in_MiB))
         )
     if end is not None and size_in_MiB is not None:
@@ -743,15 +744,19 @@ def add_partition_SUB(
     else:
         end_str = None
     if debug:
-        sys.stderr.write("end_str is", end_str)
+        sys.stderr.write("end_str is", end_str, "\n")
         debug_str = ""
     else:
         debug_str = " >/dev/null 2>/dev/null"
-    if with_partno_Q: 
+    from my.disktools.disks import get_partitiontable_type
+    partitiontable_type = get_partitiontable_type(disk_path)
+    if fstype is None and partitiontable_type == 'dos':
+        fstype = _DOS_DEFAULT
+    if with_partno_Q:
         res = os.system(
             """echo "p\nn\n%s\n%s\n%s\n%s\nw" | fdisk %s %s"""
             % (
-                "e" if fstype == _DOS_EXTENDED else "l" if partno >= 5 else "p" if disklabel_type == "dos" else "",
+                "e" if fstype == _DOS_EXTENDED else "l" if partno >= 5 else "p" if partitiontable_type == "dos" else "",
                 "" if not partno else str(partno),
                 "" if not start else str(start),
                 "" if not end_str else end_str,
@@ -763,7 +768,7 @@ def add_partition_SUB(
         res = os.system(
             """echo "p\nn\n%s\n%s\n%s\nw" | fdisk %s %s"""
             % (
-                "e" if fstype == _DOS_EXTENDED else "l" if partno >= 5 else "p" if disklabel_type == "dos" else "",
+                "e" if fstype == _DOS_EXTENDED else "l" if partno >= 5 else "p" if partitiontable_type == "dos" else "",
                 "" if not start else str(start),
                 "" if not end_str else end_str,
                 disk_path,
@@ -771,14 +776,19 @@ def add_partition_SUB(
             )
         )
     call_binary(['partprobe',disk_path])
-    res += os.system(
-        """sfdisk --part-type {disk_path} {partno} {fstype} {debug}""".format(
-            disk_path=disk_path,
-            partno=partno,
-            fstype=fstype,
-            debug="" if debug else "> /dev/null 2> /dev/null",
+    if fstype == None:
+        pass
+    elif partitiontable_type == _DOS:
+        res += os.system(
+            """sfdisk --part-type {disk_path} {partno} {fstype} {debug}""".format(
+                disk_path=disk_path,
+                partno=partno,
+                fstype=fstype,
+                debug="" if debug else "> /dev/null 2> /dev/null",
+            )
         )
-    )
+    else:
+        sys.stderr.write("Ignoring fstype {fstype} because this is a {partitiontable_type} partitiontable\r".format(fstype=fstype, partitiontable_type=partitiontable_type))
     return res
 
 
@@ -883,6 +893,7 @@ def add_partition(
         PartitionWasNotCreatedError: Creation of the partition failed.
 
     """
+    from my.disktools.disks import get_partitiontable_type
     if overlapping(disk_path):
         raise PartitionsOverlapError(
             "I cannot create a new partition until you've fixed the overlapping old ones."
@@ -891,8 +902,6 @@ def add_partition(
         raise ValueError(
             "Specify either end=... or size_in_MIB... but don't specify both"
         )
-    if fstype is None:
-        fstype = _DOS_DEFAULT
     disk_path = os.path.realpath(disk_path)
     if debug:
         sys.stderr.write(
@@ -902,10 +911,11 @@ def add_partition(
                 str(partno),
                 str(start),
                 str(end),
-                fstype,
+                str(fstype),
                 str(size_in_MiB),
             )
         )
+    partition_type = get_partitiontable_type(disk_path)
     if end is not None and start is not None and end <= start:
         raise StartEndAssBackwardsError("The partition must end after it starts")
     res = 0
@@ -913,7 +923,7 @@ def add_partition(
         raise PartitionsOverlapError(
             "We would overlap if we tried to make this partition"
         )
-    if partno in (1, 5):
+    if partition_type == _DOS and partno in (1, 5):
         res = add_partition_SUB(
             disk_path,
             partno,
@@ -934,7 +944,7 @@ def add_partition(
                 debug=debug,
                 size_in_MiB=size_in_MiB,
             )
-    elif partno > 5 and not partition_exists(disk_path, partno - 1):
+    elif partition_type == _DOS and partno > 5 and not partition_exists(disk_path, partno - 1):
         raise MissingPriorPartitionError(
             "Because partition #%d of %s does not exist, I cannot create #%d. Logical partitions cannot be added without screwing up their order. Sorry."
             % (partno - 1, disk_path, partno)
@@ -948,7 +958,7 @@ def add_partition(
             disk_path, partno, start, end, fstype, debug=debug, size_in_MiB=size_in_MiB
         )
     try:
-        pause_until_true(timeout=5, test_func=(lambda x=disk_path, y=partno: partition_exists(x,y)),
+        pause_until_true(timeout=2, test_func=(lambda x=disk_path, y=partno: partition_exists(x,y)),
                                       nudge_func=(lambda x=disk_path: call_binary(['partprobe', x])))
     except TimeoutError as e:
         raise PartitionWasNotCreatedError(
@@ -1093,7 +1103,8 @@ def delete_partition(disk_path, partno):
         PartitionDeletionError: Failed to delete partition.
 
     """
-    if partno >= 5 and partition_exists(disk_path, partno + 1):
+    from my.disktools.disks import get_partitiontable_type
+    if get_partitiontable_type(disk_path) == _DOS and partno >= 5 and partition_exists(disk_path, partno + 1):
         raise PartitionDeletionError(
             "Because partition #%d of %s exists, I cannot delete #%d. \
 Logical partitions cannot be removed without screwing up their order. \

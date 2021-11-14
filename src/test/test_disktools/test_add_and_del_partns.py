@@ -188,7 +188,7 @@ class TestCreateAndDeleteFourPartitions(unittest.TestCase):
                 end=end,
                 fstype="83",
             )  # , debug, size_in_MiB)
-            os.system("sync;sync;sync; partprobe; sync;sync;sync")
+            os.system("partprobe %s" % MY_TESTDISK_PATH)
             self.assertEqual(True, partition_exists(MY_TESTDISK_PATH, partno))
             self.assertEqual(res, 0)
 

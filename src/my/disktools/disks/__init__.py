@@ -258,14 +258,14 @@ def serno_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
     )
     if retcode != 0:
         sys.stderr.write(stderr_txt)
-        sys.stderr.write("Warning -- serno_sizein_...et. - nonzero retcode")
+        sys.stderr.write("Warning -- serno_sizein_...et. - nonzero retcode\n")
     disk_length_in_bytes, lab1, disk_length_in_sectors, lab2 = stdout_txt.split("\n")[
         0
     ].split(" ")[-4:]
     try:
-        serno = [r for r in stdout_txt.split("\n") if ": 0x" in r][0].split(" ")[-1]
+        the_serno = [r for r in stdout_txt.strip('\n').split("\n")][-1].split(':')[-1].strip(' ')
     except IndexError:
-        serno = None
+        the_serno = None
     #    just_fdisk_op = subprocess.run(['fdisk', '-l', disk_path], \
     #                                stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
     #    (disk_length_in_bytes, lab1, disk_length_in_sectors, lab2) = \
@@ -277,7 +277,7 @@ def serno_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
     ), "Sector size should be an integer. My disk-analyzing script appears to be broken."
     del lab1, lab2
     return (
-        serno,
+        the_serno,
         int(disk_length_in_bytes),
         int(disk_length_in_sectors),
         int(sector_size),
@@ -285,6 +285,7 @@ def serno_sizeinbytes_sizeinsectors_and_sectorsize(disk_path):
 
 
 def get_serno(disk_path):
+    """Read partition table of disk. Return its serial number."""
     return serno_sizeinbytes_sizeinsectors_and_sectorsize(disk_path)[0]
 
 
@@ -310,7 +311,12 @@ def set_serno(disk_path, new_serno):
         * Add more TODOs
 
     """
-    _, __, ___ = call_binary(
+#     retcode = os.system("""echo "x
+# i
+# {new_serno}
+# r
+# w" | fdisk {disk_path}""".format(new_serno=new_serno, disk_path=disk_path))
+    retcode, stdout_txt, stderr_txt = call_binary(
         ["fdisk", disk_path],
         """x
 i
@@ -321,6 +327,9 @@ w
             new_serno=new_serno
         ),
     )
+    if retcode != 0:
+        print("stdout_txt:", stdout_txt)
+        print("stderr_txt:", stderr_txt)
     _, __, ___ = call_binary(['partprobe', disk_path])
     resultant_serno = get_serno(disk_path) 
     if resultant_serno != new_serno:
@@ -509,7 +518,7 @@ def enhance_the_sfdisk_output(disk_path, json_rec):
     json_rec["partitiontable"]["sector_size"] = sector_size
     json_rec["partitiontable"]["size_in_bytes"] = disk_size_in_bytes
     json_rec["partitiontable"]["size_in_sectors"] = disk_size_in_sectors
-    json_rec["partitiontable"]["disklabel_type"] = json_rec["partitiontable"]["label"]
+    json_rec["partitiontable"]["partitiontable_type"] = json_rec["partitiontable"]["label"]
     del json_rec["partitiontable"]["label"]
     json_rec["partitiontable"]["serno"] = serno
     for disk_searchby in ("myid", "label", "partuuid", "path", "uuid"):
@@ -569,6 +578,10 @@ def disk_namedtuple(disk_path):
     return res
 
 
+def get_partitiontable_type(disk_path):
+    return sfdisk_output(disk_path)['partitiontable']['label']
+
+
 def reset_disk_partition_table(diskdev, pttype):
     if pttype not in (_DOS, _GPT):
         raise ValueError("Only dos or gpt is acceptable.")
@@ -578,7 +591,7 @@ def reset_disk_partition_table(diskdev, pttype):
 w""".format(ptcode=ptdic[pttype]))
 #    if retcode != 0:
 #        raise ValueError("Cannot give partition table type '%s' to disk '%s'\n%s" % (pttype, diskdev, stderr_txt))
-    os.system("sync;sync;sync;partprobe;sync;sync;sync")
+    os.system("partprobe %s" % diskdev)
     j = sfdisk_output(diskdev)
     if j['partitiontable']['label'] != pttype:
         raise ValueError("Cannot give partition table type '%s' to disk '%s'\n%s" % (pttype, diskdev, stderr_txt))
@@ -625,8 +638,8 @@ class Disk:
                 raise ValueError("New partition table type must me dos, gpt, sun, or irix... not {new_partition_table}".format(new_partition_table=new_partition_table))
             reset_disk_partition_table(diskdev=self._node, pttype=new_partition_table)
         self.update()
-        # if self.disklabel_type != _DOS:
-        #     sys.stderr.write("WARNING --- I have not been tested with a %s partition table\n" % self.disklabel_type)
+        # if self.partitiontable_type != _DOS:
+        #     sys.stderr.write("WARNING --- I have not been tested with a %s partition table\n" % self.partitiontable_type)
 
     def __repr__(self):
         return 'Disk(node="%s")' % self.node
@@ -675,7 +688,7 @@ class Disk:
         self._myid = self._cache.partitiontable.myid
         self._pddev = self._cache.partitiontable.device # Unused!
         self._unit = self._cache.partitiontable.unit
-        self._disklabel_type = self._cache.partitiontable.disklabel_type
+        self._partitiontable_type = self._cache.partitiontable.partitiontable_type
         self._serno = self._cache.partitiontable.serno
         self._sector_size = self._cache.partitiontable.sector_size
         self._size_in_sectors = self._cache.partitiontable.size_in_sectors
@@ -683,9 +696,9 @@ class Disk:
         for p in self._cache.partitiontable.partitions:
             self.partitions.append(DiskPartition(p.node))
         if self.overlapping:
-            sys.stderr.write("Warning -- partitions in %s are overlapping" % self.node)
+            sys.stderr.write("Warning -- partitions in %s are overlapping\n" % self.node)
         if self._pddev != self.node:
-            sys.stderr.write("Warning -- sfdisk said the node is {pddev} but you said it was {node}".format(pddev=self._pddev, node=self.node))
+            sys.stderr.write("Warning -- sfdisk said the node is {pddev} but you said it was {node}\n".format(pddev=self._pddev, node=self.node))
         for p in self.partitions:
             p.update()
 
@@ -696,30 +709,30 @@ class Disk:
 
     @serno.setter
     def serno(self, value):
-        _ = int(value, 16)
-        if len(value) != 10 or value[:2] != "0x":
-            raise ValueError("%s is an invalid disk id string" % value)
+        # _ = int(value, 16)
+        # if len(value) != 10 or value[:2] != "0x":
+        #     raise ValueError("%s is an invalid disk id string" % value)
         try:
             set_serno(self.node, value)
         finally:
             self.update()
-        assert self._serno == value
+#        assert self._serno == value
 
     @serno.deleter
     def serno(self):
         raise AttributeError("Not permitted")
 
     @property
-    def disklabel_type(self):
+    def partitiontable_type(self):
         """str: the /dev/disk/by-label/... (from sfdisk's output) of the disk"""
-        return self._disklabel_type
+        return self._partitiontable_type
 
-    @disklabel_type.setter
-    def disklabel_type(self, value):
+    @partitiontable_type.setter
+    def partitiontable_type(self, value):
         raise AttributeError("Not permitted")
 
-    @disklabel_type.deleter
-    def disklabel_type(self):
+    @partitiontable_type.deleter
+    def partitiontable_type(self):
         raise AttributeError("Not permitted")
 
     @property
@@ -872,11 +885,14 @@ class Disk:
                 partno = max([r.partno for r in self.partitions]) + 1
         if partno < 1 or partno > 63:
             raise ValueError("The specified partno %d is too low/high" % partno)
-        if partno in [r.partno for r in self.partitions]:
+        elif partno in [r.partno for r in self.partitions]:
             raise ValueError(
                 "Partition %d exists already. I cannot create two of them." % partno
             )
-        if partno >= 5 and self.disklabel_type == _DOS:
+        elif self.partitiontable_type == _DOS and partno >= 5 and _DOS_EXTENDED not in [p.fstype for p in self.partitions]:
+            raise WeNeedAnExtendedPartitionError(
+                "Please create an extended partition first.")
+        elif self.partitiontable_type != _DOS or partno >= 5:
             pass
         # If partition# is 2, 3, or 4, we'll run some 'start'/'end' checks.
         else:
@@ -899,11 +915,19 @@ class Disk:
                     ].start - 1
                 except IndexError:
                     pass
-        if partno >= 5 and self.disklabel_type == 'dos' and \
-                    _DOS_EXTENDED not in [p.fstype for p in self.partitions]:
-            raise WeNeedAnExtendedPartitionError(
-                "Please create an extended partition first."
-            )
+        #     if start is None and len(self.partitions) > 0:
+        #         start = max([p.end for p in self.partitions]) + 1
+        #     if partno > 1 and start is None:
+        #         raise ValueError(
+        #             "Specify start sector of partition #%d of %s" % (partno, self.node)
+        #         )
+        #     if end is None and size_in_MiB is None:
+        #         try:
+        #             end = [r for r in self.partitions if r.partno == partno + 1][
+        #                 0
+        #             ].start - 1
+        #         except IndexError:
+        #             pass                
         try:
             add_partition(
                 self.node,
@@ -964,7 +988,7 @@ class Disk:
         if type(partno) is not int:
             raise ValueError("Please specify a partition number that is an integer")
         if partition_exists(self.node, partno):
-            if partno >= 5 and partition_exists(self.node, partno + 1):
+            if partno >= 5 and self.partitiontable_type == 'dos' and partition_exists(self.node, partno + 1):
                 raise PartitionDeletionError(
             "Partition #%d of %s exists. I'm sorry, but I can't delete #%d w/o screwing up \
 the order of the logical partitions." % (partno + 1, self.node, partno))
@@ -974,7 +998,7 @@ the order of the logical partitions." % (partno + 1, self.node, partno))
                 self.update(partprobe=update)
         else:
             sys.stderr.write(
-                "No need to delete partition #%d from %s --- that partition does not exist\n"
+                "No need to delete partition #%d from %s --- that partition does not exist\r"
                 % (partno, self.node)
             )
 
@@ -985,13 +1009,13 @@ the order of the logical partitions." % (partno + 1, self.node, partno))
             :obj:`str`: Human-readable info dump.
 
         """
-        outtxt = """label: {disklabel_type}
+        outtxt = """label: {partitiontable_type}
 label-id: {serno}
 device: {node}
 unit: sectors
 
 """.format(
-            disklabel_type=self.disklabel_type, serno=self.serno, node=self.node
+            partitiontable_type=self.partitiontable_type, serno=self.serno, node=self.node
         )
         for p in self.partitions:
             outtxt += sfdisk_compatible_text_line(p.node, p.start, p.size, p.fstype)

@@ -76,7 +76,7 @@ class TestGetDiskRecord_TWO(unittest.TestCase):
                 os.path.realpath(MY_TESTDISK_PATH),
             )
         self.assertEqual(r.partitiontable.unit, "sectors")
-        self.assertEqual(r.partitiontable.disklabel_type, "dos")
+        self.assertEqual(r.partitiontable.partitiontable_type, "dos")
         self.assertEqual(
             0,
             os.system(

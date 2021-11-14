@@ -11,7 +11,6 @@ Usage:-
 import os
 import random
 import sys
-from test import MY_TESTDISK_PATH
 import unittest
 # from my.disktools.partitions import (
 #     partition_exists,
@@ -20,12 +19,12 @@ import unittest
 #     delete_partition,
 #     overlapping,
 # )
+from test import MY_TESTDISK_PATH
 from my.exceptions import PartitionTableCannotReadError,\
     MissingPriorPartitionError, PartitionDeletionError
-from my.globals import call_binary, _GPT, _DOS
+from my.globals import call_binary, _GPT, _DOS, _DOS_EXTENDED
 from my.disktools.disks import Disk, is_this_a_disk
-from my.disktools.partitions import delete_all_partitions, _DOS_EXTENDED,\
-    partition_exists
+from my.disktools.partitions import delete_all_partitions, partition_exists
 
 
 class TestSample(unittest.TestCase):
@@ -107,7 +106,7 @@ class TestDiskImageLoopdev(unittest.TestCase):
         retcode, _stdout_txt, _stderr_txt = call_binary(['losetup', '-d', MY_DISK_LOOPDEV])
         retcode, _stdout_txt, stderr_txt = call_binary(['losetup', MY_DISK_LOOPDEV, MY_DISK_IMGFILE])
         self.assertEqual(retcode,0, "Failed to losetup the disk image\n"+stderr_txt)
-        os.system("sync;sync;sync;partprobe;sync;sync;sync")
+        os.system("partprobe")
         with self.assertRaises(PartitionTableCannotReadError):
             _d = Disk(MY_DISK_IMGFILE)
 
@@ -142,17 +141,17 @@ class TestDiskImageLoopdev(unittest.TestCase):
 
     def testNewPartitionTableSensibleGPT(self):
         d = Disk(node=MY_DISK_LOOPDEV, new_partition_table=_GPT)
-        self.assertEqual(d.disklabel_type, _GPT)
+        self.assertEqual(d.partitiontable_type, _GPT)
 
     def testNewPartitionTableSensibleDOS(self):
         d = Disk(node=MY_DISK_LOOPDEV, new_partition_table=_DOS)
-        self.assertEqual(d.disklabel_type, _DOS)
+        self.assertEqual(d.partitiontable_type, _DOS)
 
     def testCreateSimpleDiskPartitionTableRandoms(self):
         for _ in range(0,16):
             dltype = (_GPT,_DOS)[random.randint(0,1)]
             d = Disk(node=MY_DISK_LOOPDEV, new_partition_table=dltype)
-            self.assertEqual(d.disklabel_type, dltype)
+            self.assertEqual(d.partitiontable_type, dltype)
 
     def testAddPartitionAndRemoveItAgain(self):
         d = Disk(node=MY_DISK_LOOPDEV, new_partition_table=_DOS)
@@ -162,10 +161,10 @@ class TestDiskImageLoopdev(unittest.TestCase):
 
 class TestDiskActualImage(unittest.TestCase):
     def setUp(self):
-        retcode, _stdout_txt, stderr_txt = call_binary(['dd', 'bs=1024k', 'if=/dev/zero', 'of='+MY_DISK_IMGFILE,
+        retcode, _stdout_txt, stderr_txt = call_binary(['dd', 'bs=1024k', 'if=/dev/zero', 'of='+MY_DISK_IMGFILE, \
                                                        'count=%d'%MY_DISK_IMGSIZE_IN_MB])
         self.assertEqual(retcode,0, "Failed to create sample loopdev disk image\n"+stderr_txt)
-        os.system("sync;sync;sync;partprobe;sync;sync;sync")
+        os.system("partprobe")
 
     def tearDown(self):
         call_binary(['rm', '-f', MY_DISK_IMGFILE])
@@ -191,7 +190,7 @@ class TestDiskActualImage(unittest.TestCase):
         for _ in range(0,16):
             dltype = (_GPT,_DOS)[random.randint(0,1)]
             d = Disk(node=MY_DISK_IMGFILE, new_partition_table=dltype)
-            self.assertEqual(d.disklabel_type, dltype)
+            self.assertEqual(d.partitiontable_type, dltype)
                 
     def testCreateAndDeleteImage(self):
         d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
@@ -214,13 +213,12 @@ MY_DISK_LOOPDEV  = '/dev/loop5'
 MY_DISK_IMGFILE = '/tmp/.fofta.temp.image.file'
 from my.disktools.disks import *
 from my.disktools.partitions import *
-from my.globals import *
+from my.globals import _DOS, _DOS_EXTENDED
 if int(call_binary(['df','-m','/tmp'])[1].split('\n')[1].split('tmpfs')[1].strip(' ').split(' ')[0]) < MY_DISK_IMGSIZE_IN_MB:
     MY_DISK_IMGFILE = MY_DISK_IMGFILE.replace('/tmp/','/root/')
 
 retcode, stdout_txt, stderr_txt = call_binary(['dd', 'bs=1024k', 'if=/dev/zero', 'of='+MY_DISK_IMGFILE,
                                                'count=%d'%MY_DISK_IMGSIZE_IN_MB])
-        
 d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
 d.add_partition(size_in_MiB=1024)
 d.add_partition(size_in_MiB=1024)
@@ -336,6 +334,59 @@ d.delete_all_partitions()
         self.assertFalse(partition_exists(disk_path=d.node, partno=6))
         self.assertFalse(partition_exists(disk_path=d.node, partno=7))
 
+    def testTinkyWinkyONE(self):
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
+        d.add_partition(size_in_MiB=32)
+        d.add_partition(size_in_MiB=32)
+        d.add_partition(size_in_MiB=32)
+        d.delete_partition(2)
+        d.add_partition(2)
+
+    def testTinkyWinkyTWO(self):
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
+        d.add_partition(size_in_MiB=32)
+        d.add_partition(size_in_MiB=32)
+        d.add_partition(size_in_MiB=32)
+        d.add_partition(fstype=_DOS_EXTENDED)
+        d.add_partition(5, size_in_MiB=50)
+        old_p2_start=d.partitions[1].start
+        old_p2_end=d.partitions[1].end
+        d.delete_partition(2)
+        d.add_partition(partno=2, start=old_p2_start, end=old_p2_end)
+
+    def testTinkyWinkyTHREE(self):
+        '''
+MY_DISK_IMGSIZE_IN_MB = 300
+MY_DISK_LOOPDEV  = '/dev/loop5'
+MY_DISK_IMGFILE = '/tmp/.fofta.temp.image.file'
+from test import MY_TESTDISK_PATH
+from my.disktools.disks import *
+from my.disktools.partitions import *
+from my.globals import call_binary, _GPT, _DOS, _DOS_EXTENDED
+if int(call_binary(['df','-m','/tmp'])[1].split('\n')[1].split('tmpfs')[1].strip(' ').split(' ')[0]) < MY_DISK_IMGSIZE_IN_MB:
+    MY_DISK_IMGFILE = MY_DISK_IMGFILE.replace('/tmp/','/root/')
+
+retcode, stdout_txt, stderr_txt = call_binary(['dd', 'bs=1024k', 'if=/dev/zero', 'of='+MY_DISK_IMGFILE,
+                                               'count=%d'%MY_DISK_IMGSIZE_IN_MB])
+d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
+d.add_partition(size_in_MiB=32)
+d.add_partition(size_in_MiB=32)
+d.add_partition(size_in_MiB=32)
+d.add_partition(fstype=_DOS_EXTENDED)
+d.add_partition(5, size_in_MiB=50)
+old_p2_start=d.partitions[1].start
+old_p2_end=d.partitions[1].end
+d.delete_partition(2)
+d.add_partition(2)
+        '''        
+        d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
+        d.add_partition(size_in_MiB=32)
+        d.add_partition(size_in_MiB=32)
+        d.add_partition(size_in_MiB=32)
+        d.add_partition(fstype=_DOS_EXTENDED)
+        d.add_partition(5, size_in_MiB=50)
+        d.delete_partition(2)
+        d.add_partition(2)
 
     def testMake567AndTinkerWith2(self):
         d = Disk(node=MY_DISK_IMGFILE, new_partition_table=_DOS)
